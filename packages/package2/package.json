@@ -1,0 +1,40 @@
+{
+  "name": "@shapediver/package2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "keywords": [],
+  "author": "Michael Oppitz <michael@shapediver.com>",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shapediver/ShapeDiverMonorepoTemplate.git"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc -b",
+    "build-dep": "lerna run build --stream --scope=@shapediver/package2 --include-dependencies"
+  },
+  "bugs": {
+    "url": "https://github.com/shapediver/ShapeDiverMonorepoTemplate/issues"
+  },
+  "homepage": "https://github.com/shapediver/ShapeDiverMonorepoTemplate#readme",
+  "dependencies": {
+    "@shapediver/package1": "^1.0.0"
+  },
+  "devDependencies": {
+    "@shapediver/ts-config": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^4.1.2"
+  }
+}
