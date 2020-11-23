@@ -12,8 +12,10 @@
     "webpack-merge": "^5.4.0"
   },
   "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "create-lib": "bash ./scripts/create-lib.sh",
-    "create-package": "bash ./scripts/create-package.sh"
+    "bootstrap": "bash ./scripts/check-npm-version.sh && lerna bootstrap",
+    "check-npm-version": "bash ./scripts/check-npm-version.sh",
+    "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
+    "create-package": "bash ./scripts/create-package.sh",
+    "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap"
   }
 }

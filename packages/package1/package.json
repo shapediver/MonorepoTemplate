@@ -22,16 +22,15 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc -b",
-    "build-dep": "lerna run build --stream --scope=@shapediver/package1 --include-dependencies"
+    "build-dep": "lerna run build --stream --scope=$npm_package_name --include-dependencies"
   },
   "bugs": {
     "url": "https://github.com/shapediver/ShapeDiverMonorepoTemplate/issues"
   },
   "homepage": "https://github.com/shapediver/ShapeDiverMonorepoTemplate#readme",
   "devDependencies": {
-    "@shapediver/ts-config": "^1.0.0"
-  },
-  "peerDependencies": {
+    "@shapediver/ts-config": "^1.0.0",
+    "lerna": "^3.22.1",
     "typescript": "^4.1.2"
   }
 }

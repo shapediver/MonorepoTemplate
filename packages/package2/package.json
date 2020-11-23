@@ -22,7 +22,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc -b",
-    "build-dep": "lerna run build --stream --scope=@shapediver/package2 --include-dependencies",
+    "build-dep": "lerna run build --stream --scope=$npm_package_name --include-dependencies",
     "build-dev": "rm -rf ./dist-dev && mkdir dist-dev && cp index.html dist-dev/index.html && webpack serve --config ../../webpack.dev.js --output-filename bundle.js --output-path dist-dev --content-base ./dist-dev",
     "build-prod": "rm -rf ./dist-prod && mkdir dist-prod && cp index.html dist-prod/index.html && webpack --config ../../webpack.prod.js --output-filename bundle.js --output-path dist-prod"
   },
@@ -35,12 +35,10 @@
   },
   "devDependencies": {
     "@shapediver/ts-config": "^1.0.0",
+    "lerna": "^3.22.1",
     "typescript": "^4.1.2",
     "webpack": "^5.6.0",
     "webpack-cli": "^4.2.0",
     "webpack-dev-server": "^3.11.0"
-  },
-  "peerDependencies": {
-    "typescript": "^4.1.2"
   }
 }
