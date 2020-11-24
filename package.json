@@ -2,9 +2,12 @@
   "name": "root",
   "private": true,
   "devDependencies": {
+    "@types/jest": "^26.0.15",
     "@types/node": "^14.14.9",
+    "jest": "^26.6.3",
     "json": "^10.0.0",
     "lerna": "^3.22.1",
+    "ts-jest": "^26.4.4",
     "ts-loader": "^8.0.11",
     "typescript": "^4.1.2",
     "webpack": "^5.6.0",
@@ -17,6 +20,7 @@
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "bash ./scripts/create-package.sh",
-    "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap"
+    "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap",
+    "test": "lerna run test"
   }
 }

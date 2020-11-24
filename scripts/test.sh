@@ -1,0 +1,1 @@
+jest ./__tests__

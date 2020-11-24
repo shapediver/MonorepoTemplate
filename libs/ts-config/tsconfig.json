@@ -15,8 +15,10 @@
         "./**/*.ts"
     ],
     "exclude": [
+        "__tests__/**/*",
         "node_modules/**/*",
-        ".vscode/**/*",
-        "dist"
+        "dist",
+        "dist-dev",
+        "dist-prod"
     ]
 }

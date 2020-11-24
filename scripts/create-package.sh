@@ -23,6 +23,15 @@ cd $PACKAGE_PATH'/src/'
 touch index.ts
 cd ../../..
 
+cd $PACKAGE_PATH
+rm -r 'lib'
+cd ../..
+
+cd $PACKAGE_PATH'/__tests__/'
+rm $NAME'.test.js'
+touch $NAME'.test.ts'
+cd ../../..
+
 # copy tsconfig and index.html
 cp './scripts/utils/tsconfig.json' $PACKAGE_PATH
 cp './scripts/utils/index.html' $PACKAGE_PATH
@@ -34,12 +43,20 @@ json -q -I -f $PACKAGE_PATH'package.json' -e 'this.main="dist/index.js"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.typings="dist/index.d.ts"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.files=["dist"]'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts.check="tsc --noEmit"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts.build="tsc -b"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-dep"]="lerna run build --stream --scope=$npm_package_name --include-dependencies"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-dev"]="rm -rf ./dist-dev && mkdir dist-dev && cp index.html dist-dev/index.html && webpack serve --config ../../webpack.dev.js --output-filename bundle.js --output-path dist-dev --content-base ./dist-dev"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-prod"]="rm -rf ./dist-prod && mkdir dist-prod && cp index.html dist-prod/index.html && webpack --config ../../webpack.prod.js --output-filename bundle.js --output-path dist-prod"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts.build="bash ../../scripts/build.sh"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-dep"]="bash ../../scripts/build-dep.sh"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-dev"]="bash ../../scripts/build-dev.sh"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts["build-prod"]="bash ../../scripts/build-prod.sh"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.scripts.test="bash ../../scripts/test.sh"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.jest={}'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.jest.preset="ts-jest"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.jest.testEnvironment="node"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies={}'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.directories={}'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.directories.test="__tests__"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["@shapediver/ts-config"]="^1.0.0"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["@shapediver/webpack-config"]="^1.0.0"'
+json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["jest"]="^26.6.3"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["lerna"]="^3.22.1"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["typescript"]="^4.1.2"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack"]="^5.6.0"'

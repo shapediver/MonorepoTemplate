@@ -23,6 +23,15 @@ cd $LIB_PATH'/src/'
 touch index.ts
 cd ../../..
 
+cd $LIB_PATH
+rm -r 'lib'
+cd ../..
+
+cd $LIB_PATH'/__tests__/'
+rm $NAME'.test.js'
+touch $NAME'.test.ts'
+cd ../../..
+
 # copy tsconfig
 cp './scripts/utils/tsconfig.json' $LIB_PATH
 
@@ -33,10 +42,17 @@ json -q -I -f $LIB_PATH'package.json' -e 'this.main="dist/index.js"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.typings="dist/index.d.ts"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.files=["dist"]'
 json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.check="tsc --noEmit"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.build="tsc -b"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts["build-dep"]="lerna run build --stream --scope=$npm_package_name --include-dependencies"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.build="bash ../../scripts/build.sh"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.scripts["build-dep"]="bash ../../scripts/build-dep.sh"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.test="bash ../../scripts/test.sh"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.jest={}'
+json -q -I -f $LIB_PATH'package.json' -e 'this.jest.preset="ts-jest"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.jest.testEnvironment="node"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.directories={}'
+json -q -I -f $LIB_PATH'package.json' -e 'this.directories.test="__tests__"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies={}'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["@shapediver/ts-config"]="^1.0.0"'
+json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["jest"]="^26.6.3"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["lerna"]="^3.22.1"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["typescript"]="^4.1.2"'
 
