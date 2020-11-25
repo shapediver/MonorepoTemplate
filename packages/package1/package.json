@@ -14,7 +14,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shapediver/ShapeDiverMonorepoTemplate.git"
+    "url": "git+https://github.com/shapediver/ShapeDiverMonorepoTemplate.git",
+    "directory": "examples"
   },
   "scripts": {
     "check": "tsc --noEmit",

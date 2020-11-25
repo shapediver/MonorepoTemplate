@@ -22,7 +22,7 @@
     "create-package": "bash ./scripts/create-package.sh",
     "add-dependency": "bash ./scripts/add-dependency.sh",
     "add-devDependency": "bash ./scripts/add-devDependency.sh",
-    "publish": "lerna publish --registry https://npm.pkg.github.com",
+    "publish": "lerna publish --registry https://npm.pkg.github.com/",
     "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap",
     "test": "lerna run test",
     "build": "lerna run build"
