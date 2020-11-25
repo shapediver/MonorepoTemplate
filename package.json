@@ -25,6 +25,7 @@
     "publish": "lerna publish --force-publish --no-push --registry https://npm.pkg.github.com/",
     "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap",
     "test": "lerna run test",
-    "build": "lerna run build"
+    "build": "lerna run build",
+    "build-dep": "lerna run build-dep"
   }
 }
