@@ -15,7 +15,7 @@ then
     exit 1
 fi
 
-lerna create $NAME 'libs' --private true --description "" --yes
+lerna create $NAME 'libs' --description "" --yes
 
 # add an empty index.ts
 mkdir -p $LIB_PATH'/src/'

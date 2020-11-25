@@ -15,7 +15,7 @@ then
     exit 1
 fi
 
-lerna create $NAME 'packages' --private true --description "" --yes
+lerna create $NAME 'packages' --description "" --yes
 
 # add an empty index.ts
 mkdir -p $PACKAGE_PATH'/src/'
