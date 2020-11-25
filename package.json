@@ -20,6 +20,10 @@
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "bash ./scripts/create-package.sh",
+    "add-dependency": "bash ./scripts/add-dependency.sh",
+    "add-dependency-all": "bash ./scripts/add-dependency-all.sh",
+    "add-devDependency": "bash ./scripts/add-devDependency.sh",
+    "add-devDependency-all": "bash ./scripts/add-devDependency-all.sh",
     "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap",
     "test": "lerna run test"
   }
