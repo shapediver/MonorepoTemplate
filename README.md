@@ -127,4 +127,6 @@ export default package_B;
 
 Let's now build `package_B` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
 
+Let's create a commit for our changes, we need this as for publishing, a tag is created on that commit.
+
 Now we want to publish the repository, therefore we just call `npm run publish` and follow the prompts there (please see the part about publishing a bit above).

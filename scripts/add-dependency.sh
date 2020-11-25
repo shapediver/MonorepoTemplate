@@ -1,7 +1,6 @@
 NAME1=$1
 NAME2=$2
 NAME2=${NAME2[@]/'@shapediver/'/''}
-echo $NAME2
 
 if [ -z "$NAME1" ]
 then
