@@ -1,6 +1,6 @@
 {
   "name": "@shapediver/package2",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "description": "",
   "keywords": [],
@@ -48,6 +48,6 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "@shapediver/package1": "^1.0.6"
+    "@shapediver/package1": "^1.0.7"
   }
 }
