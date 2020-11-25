@@ -40,28 +40,22 @@ Your package name will be `@shapediver/NAME`.
 
 ## 3. Bootstrapping
 
-One great feature of `lerna` is bootstrapping. As we have multiple packages, the either rely on each other or have the same dependencies, installing the dependencies per package doesn't make sense.
+One great feature of `lerna` is bootstrapping. As we have multiple packages, the either rely on each other or have the same dependencies, installing the dependencies per package doesn't make sense. Also, bootstrapping checks for circular dependencies, which makes our life that much easier.
 
-### External Dependencies
+Therefore there are two scripts (one for normal dependencies, one for devDependencies) that use `lerna` and will make your life easier. I will just explain the script for normal dependencies, but the script for devDependencies works just the same. (just replace `add-dependency` with `add-devDependency` in the examples below)
 
-For external dependencies, install them in the root of the project, then copy the name and version number to the package where you need it and call `npm run bootstrap` in the root of the project. `lerna` will link the dependencies accordingly.
+### Example 1 - adding an external dependency
 
-Example:
-- I want to have the dependency `three` in my package `a_package_that_has_three`.
-- I install `three` in the root via `npm i three`.
-- I know manually add the installed `three` version (`"three": "^A.B.C"`) of the global `package.json` to the `package.json` of the package `a_package_that_has_three`
-- I call `npm run bootstrap`
+Let's say we want to add the package `three` to a specific package `a_package`.
+Then the only thing we have to do is call `npm run add-dependency three @shapediver/a_package` in the root folder.
+This installs the package in the root and links it to `a_package`.
 
-If the package is already installed on the root, only the two last steps are needed.
+In case you want `three` in all packages and libs you can call `npm run add-dependency three`.
 
-### Internal Dependencies
+### Example 2 - adding an internal dependency
 
-For internal dependencies it is even easier. In this case just add the name and version number of the package you want to add to the `package.json` and run `npm run bootstrap` in the root of the project again.
-
-Example:
-- I want to have the dependency `a_package` in my package `another_package`.
-- I manually add the package (`"a_package": "^A.B.C"`) to the `package.json` of the package `another_package`
-- I call `npm run bootstrap`
+Now I want to add `a_package` to `another_package` (both are part of this repository).
+This works just similarly with `npm run add-dependency @shapediver/a_package @shapediver/another_package`.
 
 ## 4. Building
 
@@ -82,3 +76,46 @@ Testing is configured via jest and should be fairly easy to use.
 ## 6. Publishing
 
 To publish a package, please refer to [this](https://github.com/lerna/lerna/tree/main/commands/publish) page as this might be different for different packages. Should also probably be discussed.
+
+TODO
+
+## 7. Example
+
+So this is the goal of our example. We want to create to packages, `package_A` and `package_B`, where `package_B` has a dependency on `package_A`. After, we want to publish both packages.
+
+First we create both packages:
+```bash
+npm run create-package package_A
+npm run create-package package_B
+```
+
+Then we add some extremely simple logic to the `index.ts` of `package_A`:
+```typescript
+const package_A = (): string => {
+  return 'Hello ShapeDiver!';
+};
+
+export default package_A;
+```
+
+Then we add a dependency of `package_A` to `package_B` to be able to use `package_A` there:
+```bash
+npm run add-dependency @shapediver/package_A @shapediver/package_B
+```
+
+In the `index.ts` of `package_B` we'll now also add some simple logic that uses `package_A`:
+```typescript
+import package_A from '@shapediver/package_A';
+
+const package_B = (): string => {
+  return 'What does package_A say? ' + package_A();
+};
+
+export default package_B;
+```
+
+Let's now build `package_B` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
+
+Now we want to publish `package_B`, as this package is dependent on `package_A`, we need to publish that as well.
+
+TODO
