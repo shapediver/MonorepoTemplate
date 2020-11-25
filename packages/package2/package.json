@@ -1,6 +1,6 @@
 {
   "name": "@shapediver/package2",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "keywords": [],
   "author": "Michael Oppitz <michael@shapediver.com>",
@@ -44,6 +44,6 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "@shapediver/package1": "^1.1.0"
+    "@shapediver/package1": "^1.1.1"
   }
 }
