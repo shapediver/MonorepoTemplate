@@ -130,3 +130,10 @@ Let's now build `package_b` with a command that builds also it's dependencies `n
 Let's create a commit for our changes, we need this as for publishing, a tag is created on that commit.
 
 Now we want to publish the repository, therefore we just call `npm run publish` and follow the prompts there (please see the part about publishing a bit above).
+
+
+## 7. FAQ
+
+- I add a dependency, but in the typescript file, it still shows me an error. What is up with that?
+
+The VSCode typescript language server has some issues, just restart it or VSCode in general.
