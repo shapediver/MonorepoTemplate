@@ -75,9 +75,20 @@ Testing is configured via jest and should be fairly easy to use.
 
 ## 6. Publishing
 
-To publish a package, please refer to [this](https://github.com/lerna/lerna/tree/main/commands/publish) page as this might be different for different packages. Should also probably be discussed.
+Publishing can only be done for the whole repository at once, to keep the versioning simple. We publish to github packages, where you can see the all packages of the whole organization here: https://github.com/orgs/shapediver/packages
+Naturally, please be smart with the naming of packages.
 
-TODO
+First, if you haven't already, create an access token on github. An explanation can be seen [here](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token). You need permissions for `repo`, `write:packages`, `read:packages` and `delete:packages`.
+
+Then create on the root of this repository a `.npmrc` file, if there isn't one already and add the following.
+```bash
+//npm.pkg.github.com/:_authToken=TOKEN
+@shapediver:registry=https://npm.pkg.github.com/
+```
+
+Here just, replace `TOKEN` with you access token that you just created.
+
+Afterwards, just call `npm run publish` and follow the prompts.
 
 ## 7. Example
 
@@ -116,6 +127,4 @@ export default package_B;
 
 Let's now build `package_B` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
 
-Now we want to publish `package_B`, as this package is dependent on `package_A`, we need to publish that as well.
-
-TODO
+Now we want to publish the repository, therefore we just call `npm run publish` and follow the prompts there (please see the part about publishing a bit above).
