@@ -1,7 +1,6 @@
 {
   "name": "@shapediver/webpack-config",
   "version": "1.0.5",
-  "private": true,
   "description": "",
   "keywords": [],
   "author": "Michael Oppitz <michael@shapediver.com>",

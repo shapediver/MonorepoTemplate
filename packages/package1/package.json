@@ -1,7 +1,6 @@
 {
   "name": "@shapediver/package1",
   "version": "1.0.7",
-  "private": true,
   "description": "",
   "keywords": [],
   "author": "Michael Oppitz <michael@shapediver.com>",
