@@ -114,6 +114,8 @@ const package_B = (): string => {
 export default package_B;
 ```
 
+Let's now build `package_B` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
+
 Now we want to publish `package_B`, as this package is dependent on `package_A`, we need to publish that as well.
 
 TODO
