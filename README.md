@@ -92,40 +92,40 @@ Afterwards, just call `npm run publish` and follow the prompts.
 
 ## 7. Example
 
-So this is the goal of our example. We want to create to packages, `package_A` and `package_B`, where `package_B` has a dependency on `package_A`. After, we want to publish both packages.
+So this is the goal of our example. We want to create to packages, `package_a` and `package_b`, where `package_b` has a dependency on `package_a`. After, we want to publish both packages.
 
 First we create both packages:
 ```bash
-npm run create-package package_A
-npm run create-package package_B
+npm run create-package package_a
+npm run create-package package_b
 ```
 
-Then we add some extremely simple logic to the `index.ts` of `package_A`:
+Then we add some extremely simple logic to the `index.ts` of `package_a`:
 ```typescript
-const package_A = (): string => {
+const package_a = (): string => {
   return 'Hello ShapeDiver!';
 };
 
-export default package_A;
+export default package_a;
 ```
 
-Then we add a dependency of `package_A` to `package_B` to be able to use `package_A` there:
+Then we add a dependency of `package_a` to `package_b` to be able to use `package_a` there:
 ```bash
-npm run add-dependency @shapediver/package_A @shapediver/package_B
+npm run add-dependency @shapediver/package_a @shapediver/package_b
 ```
 
-In the `index.ts` of `package_B` we'll now also add some simple logic that uses `package_A`:
+In the `index.ts` of `package_b` we'll now also add some simple logic that uses `package_a`:
 ```typescript
-import package_A from '@shapediver/package_A';
+import package_a from '@shapediver/package_a';
 
-const package_B = (): string => {
-  return 'What does package_A say? ' + package_A();
+const package_b = (): string => {
+  return 'What does package_a say? ' + package_a();
 };
 
-export default package_B;
+export default package_b;
 ```
 
-Let's now build `package_B` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
+Let's now build `package_b` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
 
 Let's create a commit for our changes, we need this as for publishing, a tag is created on that commit.
 
