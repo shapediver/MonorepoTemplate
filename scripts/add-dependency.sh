@@ -13,4 +13,5 @@ then
     lerna add $NAME1
 else
     lerna add $NAME1 'packages/'$NAME2
+    lerna add $NAME1 'libs/'$NAME2
 fi

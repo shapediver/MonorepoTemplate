@@ -13,4 +13,5 @@ then
     lerna add $NAME1 --dev
 else
     lerna add $NAME1 'packages/'$NAME2 --dev
+    lerna add $NAME1 'libs/'$NAME2 --dev
 fi
