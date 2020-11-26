@@ -35,7 +35,7 @@ Just call `npm run init`
 ## 2. Creating Packages and Libraries
 
 In the root of the project, either call `npm run create-lib NAME` or `npm run create-package NAME`, depending on if you want to create a library or a package. Inside this call a `lerna` command is executed first and then some smaller file changes are done after.
-Your package name will be `@shapediver/NAME`.
+Your package name will be `@shapediver/SCOPE.NAME`. Where the scope is defined in the `scope.json` of the root directory. For why we use scopes, look [here](https://shapediver.atlassian.net/wiki/spaces/SS/pages/953352193/Naming+of+Github+Packages).
 
 
 ## 3. Bootstrapping
@@ -47,7 +47,7 @@ Therefore there are two scripts (one for normal dependencies, one for devDepende
 ### Example 1 - adding an external dependency
 
 Let's say we want to add the package `three` to a specific package `a_package`.
-Then the only thing we have to do is call `npm run add-dependency three @shapediver/a_package` in the root folder.
+Then the only thing we have to do is call `npm run add-dependency three @shapediver/test.a_package` in the root folder.
 This installs the package in the root and links it to `a_package`.
 
 In case you want `three` in all packages and libs you can call `npm run add-dependency three`.
@@ -55,7 +55,7 @@ In case you want `three` in all packages and libs you can call `npm run add-depe
 ### Example 2 - adding an internal dependency
 
 Now I want to add `a_package` to `another_package` (both are part of this repository).
-This works just similarly with `npm run add-dependency @shapediver/a_package @shapediver/another_package`.
+This works just similarly with `npm run add-dependency @shapediver/test.a_package @shapediver/test.another_package`.
 
 ## 4. Building
 
@@ -111,12 +111,12 @@ export default package_a;
 
 Then we add a dependency of `package_a` to `package_b` to be able to use `package_a` there:
 ```bash
-npm run add-dependency @shapediver/package_a @shapediver/package_b
+npm run add-dependency @shapediver/test.package_a @shapediver/test.package_b
 ```
 
 In the `index.ts` of `package_b` we'll now also add some simple logic that uses `package_a`:
 ```typescript
-import package_a from '@shapediver/package_a';
+import package_a from '@shapediver/test.package_a';
 
 const package_b = (): string => {
   return 'What does package_a say? ' + package_a();
@@ -125,7 +125,7 @@ const package_b = (): string => {
 export default package_b;
 ```
 
-Let's now build `package_b` with a command that builds also it's dependencies `npm run build-dep` (in the packages/package_b folder).
+Let's now build `package_b` with a command that builds also it's dependencies `npm run build-dep` (in the packages/test.package_b folder).
 
 Let's create a commit for our changes, we need this as for publishing, a tag is created on that commit.
 
