@@ -1,6 +1,6 @@
 {
   "name": "@shapediver/test.webpack-config",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "",
   "keywords": [],
   "author": "Michael Oppitz <michael@shapediver.com>",
@@ -32,9 +32,10 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "@shapediver/test.ts-config": "^1.2.1",
+    "@shapediver/test.ts-config": "^1.2.2",
     "jest": "^26.6.3",
     "lerna": "^3.22.1",
     "typescript": "^4.1.2"
-  }
+  },
+  "gitHead": "82d9d59346deaaaf49386da349987e5b0cfbe070"
 }
