@@ -1,5 +1,5 @@
 {
-    "extends": "@shapediver/ts-config/tsconfig.json",
+    "extends": "",
     "include": [
         "./**/*.ts"
     ],

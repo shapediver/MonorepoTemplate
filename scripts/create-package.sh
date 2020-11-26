@@ -1,5 +1,6 @@
 #!/bin/bash
-NAME=$1
+SCOPE=$(json -f 'scope.json' scope)
+NAME=$SCOPE.$1
 PACKAGE_PATH='./packages/'$NAME'/'
 echo 'Trying to create package "'$NAME'" at "'$PACKAGE_PATH'"...'
 
@@ -34,6 +35,7 @@ cd ../../..
 
 # copy tsconfig and index.html
 cp './scripts/utils/tsconfig.json' $PACKAGE_PATH
+json -q -I -f $PACKAGE_PATH'tsconfig.json' -e 'this.extends="@shapediver/'$SCOPE'.ts-config/tsconfig.json"'
 cp './scripts/utils/index.html' $PACKAGE_PATH
 
 # adjust package.json
@@ -54,14 +56,15 @@ json -q -I -f $PACKAGE_PATH'package.json' -e 'this.jest.testEnvironment="node"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies={}'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.directories={}'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.directories.test="__tests__"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["@shapediver/ts-config"]="^1.0.0"'
-json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["@shapediver/webpack-config"]="^1.0.0"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["jest"]="^26.6.3"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["lerna"]="^3.22.1"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["typescript"]="^4.1.2"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack"]="^5.6.0"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack-cli"]="^4.2.0"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack-dev-server"]="^3.11.0"'
+
+npm run add-devDependency '@shapediver/'$SCOPE'.ts-config' '@shapediver/'$NAME
+npm run add-devDependency '@shapediver/'$SCOPE'.webpack-config' '@shapediver/'$NAME
 
 npm run bootstrap
 echo 'package "'$NAME'" successfully created!'

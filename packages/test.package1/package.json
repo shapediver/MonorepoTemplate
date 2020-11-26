@@ -1,6 +1,6 @@
 {
-  "name": "@shapediver/webpack-config",
-  "version": "1.2.0",
+  "name": "@shapediver/test.package1",
+  "version": "1.3.0",
   "description": "",
   "keywords": [],
   "author": "Michael Oppitz <michael@shapediver.com>",
@@ -20,7 +20,9 @@
     "test": "bash ../../scripts/test.sh",
     "check": "tsc --noEmit",
     "build": "bash ../../scripts/build.sh",
-    "build-dep": "bash ../../scripts/build-dep.sh"
+    "build-dep": "bash ../../scripts/build-dep.sh",
+    "build-dev": "bash ../../scripts/build-dev.sh",
+    "build-prod": "bash ../../scripts/build-prod.sh"
   },
   "bugs": {
     "url": "https://github.com/shapediver/ShapeDiverMonorepoTemplate/issues"
@@ -32,10 +34,14 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "@shapediver/ts-config": "^1.2.0",
+    "@shapediver/test.ts-config": "^1.3.0",
+    "@shapediver/test.webpack-config": "^1.3.0",
     "jest": "^26.6.3",
     "lerna": "^3.22.1",
-    "typescript": "^4.1.2"
+    "typescript": "^4.1.2",
+    "webpack": "^5.6.0",
+    "webpack-cli": "^4.2.0",
+    "webpack-dev-server": "^3.11.0"
   },
-  "gitHead": "72ef45482228deddbfccc1a050bb643091b8b5a8"
+  "gitHead": "82d9d59346deaaaf49386da349987e5b0cfbe070"
 }
