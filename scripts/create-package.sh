@@ -35,7 +35,6 @@ cd ../../..
 
 # copy tsconfig and index.html
 cp './scripts/utils/tsconfig.json' $PACKAGE_PATH
-json -q -I -f $PACKAGE_PATH'tsconfig.json' -e 'this.extends="@shapediver/'$SCOPE'.ts-config/tsconfig.json"'
 cp './scripts/utils/index.html' $PACKAGE_PATH
 
 # adjust package.json
@@ -62,9 +61,6 @@ json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["typescript"]
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack"]="^5.6.0"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack-cli"]="^4.2.0"'
 json -q -I -f $PACKAGE_PATH'package.json' -e 'this.devDependencies["webpack-dev-server"]="^3.11.0"'
-
-npm run add-devDependency '@shapediver/'$SCOPE'.ts-config' '@shapediver/'$NAME
-npm run add-devDependency '@shapediver/'$SCOPE'.webpack-config' '@shapediver/'$NAME
 
 npm run bootstrap
 echo 'package "'$NAME'" successfully created!'

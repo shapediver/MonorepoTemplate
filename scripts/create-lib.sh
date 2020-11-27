@@ -35,7 +35,6 @@ cd ../../..
 
 # copy tsconfig
 cp './scripts/utils/tsconfig.json' $LIB_PATH
-json -q -I -f $LIB_PATH'tsconfig.json' -e 'this.extends="@shapediver/'$SCOPE'.ts-config/tsconfig.json"'
 
 # adjust package.json
 json -q -I -f $LIB_PATH'package.json' -e 'this.name="@shapediver/'$NAME'"'
@@ -56,8 +55,6 @@ json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies={}'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["jest"]="^26.6.3"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["lerna"]="^3.22.1"'
 json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["typescript"]="^4.1.2"'
-
-npm run add-devDependency '@shapediver/'$SCOPE'.ts-config' '@shapediver/'$NAME
 
 npm run bootstrap
 echo 'lib "'$NAME'" successfully created!'
