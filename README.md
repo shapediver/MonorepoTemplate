@@ -83,6 +83,7 @@ First, if you haven't already, create an access token on github. An explanation 
 Then create on the root of this repository a `.npmrc` file, if there isn't one already and add the following.
 ```bash
 //npm.pkg.github.com/:_authToken=TOKEN
+registry=https://npm.pkg.github.com/shapediver
 @shapediver:registry=https://npm.pkg.github.com/
 ```
 
