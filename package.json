@@ -16,14 +16,14 @@
     "webpack-merge": "^5.4.0"
   },
   "scripts": {
-    "bootstrap": "bash ./scripts/check-npm-version.sh && lerna bootstrap",
+    "bootstrap": "npm run check-npm-version && lerna bootstrap",
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "bash ./scripts/create-package.sh",
     "add-dependency": "bash ./scripts/add-dependency.sh",
     "add-devDependency": "bash ./scripts/add-devDependency.sh",
     "publish": "lerna publish --force-publish --no-push --registry https://npm.pkg.github.com/",
-    "init": "bash ./scripts/check-npm-version.sh && npm i && npm run bootstrap",
+    "init": "bash ./scripts/init.sh",
     "test": "lerna run test",
     "build": "lerna run build",
     "build-dep": "lerna run build-dep"
