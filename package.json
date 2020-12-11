@@ -16,7 +16,8 @@
     "webpack-merge": "^5.4.0"
   },
   "scripts": {
-    "bootstrap": "npm run check-npm-version && lerna bootstrap",
+    "bootstrap": "npm run check-npm-version && lerna bootstrap --hoist",
+    "clean": "lerna clean",
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "bash ./scripts/create-package.sh",
