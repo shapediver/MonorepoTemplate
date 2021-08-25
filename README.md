@@ -1,9 +1,9 @@
-![logo](https://d2tlksottdg9m1.cloudfront.net/production/assets/images/shapediver_logo_gradient.png "ShapeDiver")
+![logo](https://sduse1-assets.shapediver.com/production/assets/img/apple-icon.png "ShapeDiver")
 # Monorepo Template
 
 This Repository is here to be used if you want to have multiple npm packages in one repository. These packages can be reliant on each other or completely separate.
 
-The setup is built on `lerna` which is a package that is build for handling javascript monorepos. I extended some functionality and made create some further custom scripts for creating packages and building them. But trust me, there is no magic involved, mostly just creating a nice project setup.
+The setup is built on `lerna` which is a package that is build for handling javascript monorepos. I extended some functionality and created some further custom scripts for creating packages and building them. But trust me, there is no magic involved, mostly just creating a nice project setup.
 
 You can either add packages and libraries in the `packages` folder or in the `libs` folder, respectively. Please see below regarding custom scripts on how to do that.
 
