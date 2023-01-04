@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "@types/jest": "^26.0.15",
-    "@types/node": "^14.14.9",
+    "@types/node": "^16.18.11",
     "jest": "^26.6.3",
     "json": "^10.0.0",
     "lerna": "^6.3.0",
@@ -25,8 +25,8 @@
     "add-devDependency": "bash ./scripts/add-devDependency.sh",
     "publish": "lerna publish --force-publish --no-push --registry https://npm.pkg.github.com/",
     "init": "bash ./scripts/init.sh",
-    "test": "lerna run test",
-    "build": "lerna run build",
+    "test": "npm run check-npm-version && lerna run test",
+    "build": "npm run check-npm-version && lerna run build",
     "build-dep": "lerna run build-dep"
   }
 }

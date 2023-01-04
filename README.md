@@ -9,18 +9,18 @@ You can either add packages and libraries in the `packages` folder or in the `li
 
 ## 1. Setup
 ### Node / NPM
-You need to install a specific version of node (14.5.0) and npm (6.14.5). You can do this in any way you want to, but in the following steps we will explain how to do this with nvm.
+You need to install a specific version of node (16) and npm (8). You can do this in any way you want to, but in the following steps we will explain how to do this with nvm.
 
 First of all, download nvm ([windows](https://github.com/coreybutler/nvm-windows)/[unix](https://github.com/nvm-sh/nvm)/[mac](https://github.com/nvm-sh/nvm)).
 Once installed, just use the commands
 
-`nvm install 14.5.0`
+`nvm install 16`
 
 and
 
-`nvm use 14.5.0`
+`nvm use 16`
 
-This will install node (14.5.0) and the corresponding npm version (6.14.5).
+This will install the latest node v16 and the corresponding npm version.
 
 ### GIT
 Make sure to have GIT installed on your system.
