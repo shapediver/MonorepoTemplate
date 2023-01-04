@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 rm -rf ./dist-prod
 mkdir dist-prod
 cp index.html dist-prod/index.html

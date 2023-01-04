@@ -1,20 +1,6 @@
 {
   "name": "root",
   "private": true,
-  "devDependencies": {
-    "@types/jest": "^26.0.15",
-    "@types/node": "^16.18.11",
-    "jest": "^26.6.3",
-    "json": "^10.0.0",
-    "lerna": "^6.3.0",
-    "ts-jest": "^26.4.4",
-    "ts-loader": "^8.0.11",
-    "typescript": "^4.1.2",
-    "webpack": "^5.6.0",
-    "webpack-cli": "^4.2.0",
-    "webpack-dev-server": "^3.11.0",
-    "webpack-merge": "^5.4.0"
-  },
   "scripts": {
     "bootstrap": "npm run check-npm-version && lerna bootstrap --hoist",
     "clean": "lerna clean",
@@ -28,5 +14,19 @@
     "test": "npm run check-npm-version && lerna run test",
     "build": "npm run check-npm-version && lerna run build",
     "build-dep": "lerna run build-dep"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.15",
+    "@types/node": "^16.18.11",
+    "jest": "^26.6.3",
+    "json": "^10.0.0",
+    "lerna": "^6.3.0",
+    "ts-jest": "^26.4.4",
+    "ts-loader": "^8.0.11",
+    "typescript": "^4.1.2",
+    "webpack": "^5.6.0",
+    "webpack-cli": "^4.2.0",
+    "webpack-dev-server": "^3.11.0",
+    "webpack-merge": "^5.4.0"
   }
 }

@@ -1,60 +1,58 @@
-#!/bin/bash
-SCOPE=$(json -f 'scope.json' scope)
-NAME=$SCOPE.$1
-LIB_PATH='./libs/'$NAME'/'
-echo 'Trying to create lib "'$NAME'" at "'$LIB_PATH'"...'
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
 
-if [ $LIB_PATH = './packages//' ]
-then
-    echo 'Please provide a name for the package.'
-    exit 1
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# Validate arguments
+if [ $# -lt 1 ] || [ -z "$1" ] ; then
+  echo "Error: Specify the name of the new library." >&2
+  exit 1
 fi
 
-if [ -d $LIB_PATH ]
-then
-    echo 'The path for this package already exists.'
-    exit 1
+scope=$(npx json -f 'scope.json' scope)
+name=$scope.$1
+root_path="${__dir}/../"
+lib_path="${root_path}/libs/${name}/"
+
+echo "Trying to create library '${name}' at '${lib_path}'..."
+
+if [ -d "${lib_path}" ]; then
+  echo 'The path for this package already exists.'
+  exit 1
 fi
 
-lerna create $NAME 'libs' --description "" --yes
+lerna create "${name}" 'libs' --description "" --yes
 
-# add an empty index.ts
-mkdir -p $LIB_PATH'/src/'
-cd $LIB_PATH'/src/'
-touch index.ts
-cd ../../..
-
-cd $LIB_PATH
-rm -r 'lib'
-cd ../..
-
-cd $LIB_PATH'/__tests__/'
-rm $NAME'.test.js'
-touch $NAME'.test.ts'
-cd ../../..
+# prepare package
+mkdir -p "${lib_path}/src/"
+touch "${lib_path}/src/index.ts"
+rm -r "${lib_path:?}/lib"
+echo "" > "${lib_path}/__tests__/${name}.test.js"
 
 # copy tsconfig
-cp './scripts/utils/tsconfig.json' $LIB_PATH
+cp "${__dir}/utils/tsconfig.json" "${lib_path}"
 
 # adjust package.json
-json -q -I -f $LIB_PATH'package.json' -e 'this.name="@shapediver/'$NAME'"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.description=""'
-json -q -I -f $LIB_PATH'package.json' -e 'this.main="dist/index.js"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.typings="dist/index.d.ts"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.files=["dist"]'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.check="tsc --noEmit"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.build="bash ../../scripts/build.sh"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts["build-dep"]="bash ../../scripts/build-dep.sh"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.scripts.test="bash ../../scripts/test.sh"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.jest={}'
-json -q -I -f $LIB_PATH'package.json' -e 'this.jest.preset="ts-jest"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.jest.testEnvironment="node"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.directories={}'
-json -q -I -f $LIB_PATH'package.json' -e 'this.directories.test="__tests__"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies={}'
-json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["jest"]="^26.6.3"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["lerna"]="^3.22.1"'
-json -q -I -f $LIB_PATH'package.json' -e 'this.devDependencies["typescript"]="^4.1.2"'
+npx json -q -I -f "${lib_path}package.json" -e "this.name=\"@shapediver/${name}\""
+npx json -q -I -f "${lib_path}package.json" -e 'this.description=""'
+npx json -q -I -f "${lib_path}package.json" -e 'this.main="dist/index.js"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.typings="dist/index.d.ts"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.files=["dist"]'
+npx json -q -I -f "${lib_path}package.json" -e 'this.scripts.check="tsc --noEmit"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.scripts.build="bash ../../scripts/build.sh"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.scripts["build-dep"]="bash ../../scripts/build-dep.sh"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.scripts.test="bash ../../scripts/test.sh"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.jest={}'
+npx json -q -I -f "${lib_path}package.json" -e 'this.jest.preset="ts-jest"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.jest.testEnvironment="node"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.directories={}'
+npx json -q -I -f "${lib_path}package.json" -e 'this.directories.test="__tests__"'
+npx json -q -I -f "${lib_path}package.json" -e 'this.devDependencies={}'
+npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['jest']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.jest')\""
+npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['lerna']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.lerna')\""
+npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['typescript']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.typescript')\""
 
 npm run bootstrap
-echo 'lib "'$NAME'" successfully created!'
+echo "Library '${name}' successfully created!"
