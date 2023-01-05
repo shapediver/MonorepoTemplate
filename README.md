@@ -28,9 +28,48 @@ Set the `script-shell` of npm to bash via
 
 `npm config set script-shell "PATH\TO\Git\bin\bash.exe"`
 
+### Python
+
+You need to install a specific version of Python (3.9.x, reaches end of support in 2025-10).
+
+#### Windows
+
+Download the latest 3.9-version of [Python](https://www.python.org/downloads/) and don't forget to select the box "Add Python 3.9 to PATH".\
+_Note: Not all versions have been ported to Windows, so pick the latest version that has a **Windows installer** file._
+
+Once installed disable the Windows alias feature for Python:
+1. Go to -> "Start" and type "Manage App Execution Aliases".
+2. Disable all "Python" aliases.
+
+#### Unix &amp; Mac
+
+We use [pyenv](https://github.com/pyenv/pyenv) to install and manage multiple Python versions (similar to _nvm_ that we use for Node.js).
+Once installed run the following commands:
+
+```
+# Install the latest patch version of Python
+pyenv install -v 3.9
+
+# Set the global default Python executable for the current user (protects your "System Python")
+pyenv global 3.9
+```
+
+_Note_:\
+Watch out for compilation errors in submodules!
+In this case, the last log lines contain a **ModuleNotFoundError** message (warnings can be ignored though).
+This usually means that your system is missing some dependencies.
+In this case do the following:
+1. Install the missing dependencies. Google is your friend here :)
+2. Uninstall the Python version you just installed: `pyenv uninstall <python_version>`
+3. Install Python again: `pyenv install -v 3.9`
+4. Check for module errors; repeat if necessary.
+
 ### Installing
 
-Just call `npm run init`
+Just call `npm run init` in:
+
+* the Unix shell of your choice or
+* the **Git Bash** (MinGW) - PowerShell is not supported!
 
 ## 2. Creating Packages and Libraries
 
@@ -42,7 +81,7 @@ Your package name will be `@shapediver/SCOPE.NAME`. Where the scope is defined i
 
 One great feature of `lerna` is bootstrapping. As we have multiple packages, the either rely on each other or have the same dependencies, installing the dependencies per package doesn't make sense. Also, bootstrapping checks for circular dependencies, which makes our life that much easier.
 
-Therefore there are two scripts (one for normal dependencies, one for devDependencies) that use `lerna` and will make your life easier. I will just explain the script for normal dependencies, but the script for devDependencies works just the same. (just replace `add-dependency` with `add-devDependency` in the examples below)
+Therefore, there are two scripts (one for normal dependencies, one for devDependencies) that use `lerna` and will make your life easier. I will just explain the script for normal dependencies, but the script for devDependencies works just the same. (just replace `add-dependency` with `add-devDependency` in the examples below)
 
 ### Example 1 - adding an external dependency
 

@@ -4,6 +4,7 @@
   "scripts": {
     "bootstrap": "npm run check-npm-version && lerna bootstrap --hoist",
     "clean": "lerna clean",
+    "reset": "npm run clean ; rm -r ./node_modules ; rm -r ./.venv",
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "bash ./scripts/create-package.sh",

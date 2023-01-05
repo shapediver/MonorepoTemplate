@@ -3,17 +3,25 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# Check NPM and setup JavaScript
 npm run check-npm-version
 npm i
 
-scope=$(npx json -f 'scope.json' scope)
+# Check and setup Python with virtual environment
+source "${__dir}/init-python-environment.sh"  # 'exit' in sub-script should also stop this script
+
+scope_file="${__dir}/../scope.json"
+
+scope=$(npx json -f "${scope_file}" scope)
 
 if [ "$scope" = 'test' ]; then
   echo 'You have to change the name of the scope first.'
   echo 'https://shapediver.atlassian.net/wiki/spaces/SS/pages/953352193/Naming+of+Github+Packages'
   echo 'New scope name: '
   read -r NEW_SCOPE
-  npx json -q -I -f 'scope.json' -e "this.scope=\"${NEW_SCOPE}\""
+  npx json -q -I -f "${scope_file}" -e "this.scope=\"${NEW_SCOPE}\""
 fi
 
 function ask_yes_or_no() {
@@ -24,7 +32,7 @@ function ask_yes_or_no() {
   esac
 }
 
-initialized=$(npx json -f 'scope.json' 'initialized')
+initialized=$(npx json -f "${scope_file}" 'initialized')
 
 if [ "$initialized" != 'true' ]; then
   echo 'The "npm run publish" command is currently set to publish all packages, every time (even if there were no changes).'
@@ -33,5 +41,5 @@ if [ "$initialized" != 'true' ]; then
   fi
 fi
 
-npx json -q -I -f 'scope.json' -e 'this.initialized=true'
+npx json -q -I -f "${scope_file}" -e 'this.initialized=true'
 npm run bootstrap
