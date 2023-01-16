@@ -23,6 +23,11 @@ app_on_success: list[(): None] = []
 app_on_error: list[(): None] = []
 
 
+# Helper class to stop the CLI and print the error message without the stack trace.
+class PrintMessageError(Exception):
+    pass
+
+
 def echo(
         out: t.Union[str, list, dict],
         lvl: t.Literal["log", "wrn", "err"] = "log"
@@ -126,3 +131,47 @@ def copy(src: str, dst: str) -> None:
     else:
         # Always overrides
         shutil.copy(src, dst)
+
+
+def reinstall_dependencies(root: str) -> None:
+    """ Re-installs dependencies in all Lerna components including root. """
+    run_process("npm i", root, get_output=False)
+    run_process("npx lerna clean --yes", root, get_output=False)
+    run_process("npx lerna bootstrap", root, get_output=False)
+
+
+def cmd_helper(no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
+    """
+    Helper function to initialize a CLI command.
+
+    :param no_git: When `True` checks the dirty-state of the Git repository.
+    :raise PrintMessageError: When `no_git=True` and repository has open changes.
+    :return: [0] Git repository object. [1] Absolute path to the repository's root. [2] A list of
+    all Lerna managed components.
+    """
+    repo = git_repo()
+
+    # The absolute path of the Git repository's root folder.
+    root = git_repo().git.rev_parse("--show-toplevel")
+
+    # Stop processing when open changes have been detected.
+    if not no_git and repo.is_dirty():
+        raise PrintMessageError(
+            """ERROR:
+  Your index contains uncommitted changes.
+  Please commit or stash them.
+""")
+
+    # Get list of all components that are managed by Lerna
+    components = get_lerna_components(root)
+    echo(f"Found {len(components)} components managed by Lerna.")
+
+    # Add the repo's root to the component list.
+    components.append({
+        "name": "root",
+        "version": "",
+        "private": True,
+        "location": root,
+    })
+
+    return repo, root, components

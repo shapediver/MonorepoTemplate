@@ -8,7 +8,8 @@ import semantic_version as semver
 from PyInquirer import prompt
 
 from utils import (
-    LernaComponent, app_on_error, copy, echo, get_lerna_components, git_repo, run_process)
+        LernaComponent, PrintMessageError, app_on_error, cmd_helper, copy, echo, reinstall_dependencies,
+        run_process)
 
 # Type of single Lerna component version.
 ComponentVersion = t.TypedDict('ComponentVersion', {
@@ -23,32 +24,8 @@ InternalDependency = t.TypedDict('InternalDependency', {
 
 
 def run(no_git: bool) -> bool:
-    repo = git_repo()
-
-    # The absolute path of the Git repository's root folder.
-    root = git_repo().git.rev_parse("--show-toplevel")
-
-    # Stop processing when open changes have been detected.
-    if not no_git and repo.is_dirty():
-        echo(
-            """ERROR:
-  Your index contains uncommitted changes.
-  Please commit or stash them.
-""",
-            "err")
-        return False
-
-    # Get list of all components that are managed by Lerna
-    components = get_lerna_components(root)
-    echo(f"Found {len(components)} components managed by Lerna.")
-
-    # Add the repo's root to the component list.
-    components.append({
-        "name": "root",
-        "version": "",
-        "private": True,
-        "location": root,
-    })
+    # Initialize repo object and search for Lerna components.
+    repo, root, components = cmd_helper(no_git)
 
     # Register cleanup handler for error case. We want to undo the update call as much as possible
     # (node_modules changes persist however).
@@ -115,9 +92,7 @@ WARNING:
     # Unfortunately, `npm update` always installs dependencies inside each component, which causes
     # problems with Lerna. Thus, we remove the `node_modules` folders and reinstall dependencies.
     echo("\nInstalling updated dependencies:")
-    run_process("npm i", root, get_output=False)
-    run_process("npx lerna clean --yes", root, get_output=False)
-    run_process("npx lerna bootstrap", root, get_output=False)
+    reinstall_dependencies(root)
 
     # Commit changes
     if not no_git:
@@ -130,7 +105,7 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
     """
     Creates backups of all component's package and lock files.
 
-    :raise RuntimeError: When a Lerna component does not have a package.json file.
+    :raise PrintMessageError: When a Lerna component does not have a package.json file.
     """
     for component in components:
         # Backup package.json file
@@ -138,9 +113,11 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
         if os.path.exists(package_json):
             copy(package_json, package_json + ".bak")
         else:
-            raise RuntimeError(
-                f"Error: The Lerna component '{component['name']}' does not contain a package.json "
-                f"file.")
+            raise PrintMessageError(
+                f"""
+ERROR:
+  The Lerna component '{component['name']}' does not contain a package.json file.
+""")
 
         # Backup package-lock.json file
         package_lock = os.path.join(component["location"], "package-lock.json")
