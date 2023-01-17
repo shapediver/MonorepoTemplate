@@ -1,5 +1,6 @@
 import functools
 import os
+import shlex
 import typing as t
 
 from utils import (
@@ -22,9 +23,9 @@ def run(
     backup_package_files(components)
 
     # Build command to upgrade dependencies.
-    cmd = f"npx ncu --upgrade --target {target} --filter {dep_filter}"
+    cmd = f"npx ncu --upgrade --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
     if dep_exclude is not None:
-        cmd += f" --reject {dep_exclude}"
+        cmd += f" --reject {shlex.quote(dep_exclude)}"
 
     for component in components:
         echo(f"\nUpgrading dependencies of component {component['name']}:")

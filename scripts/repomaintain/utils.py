@@ -1,6 +1,8 @@
 import json
 import os
+import shlex
 import shutil
+import sys
 import typing as t
 from subprocess import DEVNULL, STDOUT, run
 
@@ -64,8 +66,11 @@ def run_process(
         show_output: bool = True,
 ) -> t.Optional[str]:
     """
-    Invokes the given command in a new subprocess.
+    Invokes the given command in a new subprocess through a shell.
 
+    WARNING:
+    Make sure to use `shlex.quote` for all user input that is part of the command to properly escape
+    whitespace and shell metacharacters!
     :arg args: The command to execute.
     :arg cwd: Absolute path from which the command should be run.
     :arg get_output: When set to `True`, the output is captured and returned. Captured output is not
@@ -78,10 +83,20 @@ def run_process(
     """
     try:
         # We cannot disable the output when we also want to capture it
-        stdout = DEVNULL if not show_output and not get_output else None
-        stderr = STDOUT if stdout is not None else None
+        out = DEVNULL if not show_output and not get_output else None
+        err = STDOUT if out is not None else None
 
-        process = run(args.split(), cwd=cwd, capture_output=get_output, stdout=stdout, stderr=stderr)
+        # Activate shell mode on Windows systems, but disable it on Unix systems.
+        if sys.platform == "win32" or sys.platform == "cygwin":
+            shell = True
+        else:
+            shell = False
+
+        # We have to use `shell=True` for Windows support. However, this opens security risks. Thus,
+        # we use `shlex` to create a shell-escaped version of args that can be used safely.
+        cmd = shlex.split(args)
+
+        process = run(cmd, cwd=cwd, capture_output=get_output, stdout=out, stderr=err, shell=shell)
     except KeyboardInterrupt:
         # This catches SIG_INT (Ctrl+C)
         raise KeyboardInterrupt(f"Process '{args}' got interrupted.")
