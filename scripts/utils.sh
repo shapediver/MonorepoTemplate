@@ -35,10 +35,23 @@ function check_python_version() {
 # Tries to activate the venv first for Unix & Mac, with fallback to Windows.
 # Stops the script when the virtual environment could not be activated.
 function activate_python_venv() {
-  if pushd "${__dir}/../.venv/bin/" >/dev/null || pushd "${__dir}/../.venv/Scripts/" >/dev/null; then
+  if pushd "${__dir}/../.venv/bin/" &>/dev/null || pushd "${__dir}/../.venv/Scripts/" &>/dev/null; then
     source "./activate"
   else
     echo "Could not activate Python virtual environment: Run 'npm run init' to setup Python." >&2
     exit 1
+  fi
+}
+
+# Tries to run a script that is located in `./custom/` and that has the same name as the calling
+# script. If a custom script was found, the shell is stopped with the script's exit status.
+# Otherwise, nothing happens.
+function try_run_custom_script() {
+  custom_script="${__dir}/custom/${0##*/}"
+
+  if [[ -f "${custom_script}" ]]; then
+    # shellcheck source=/dev/null
+    source "${custom_script}" "$@"
+    exit "$?"
   fi
 }
