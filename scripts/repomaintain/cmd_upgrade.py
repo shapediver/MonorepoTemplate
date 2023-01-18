@@ -4,7 +4,7 @@ import shlex
 import typing as t
 
 from utils import (
-    LernaComponent, PrintMessageError, app_on_error, cmd_helper, copy, echo, reinstall_dependencies,
+    LernaComponent, app_on_error, cmd_helper, copy, echo, link_npmrc_file, reinstall_dependencies,
     run_process)
 
 
@@ -19,8 +19,9 @@ def run(
     # Register cleanup handler for error case - We want to undo the upgrade call.
     app_on_error.append(functools.partial(cleanup_on_error, components))
 
-    # Create backup of package.json files.
+    # Create backup of package.json files and link .npmrc file.
     backup_package_files(components)
+    link_npmrc_file(root, components)
 
     # Build command to upgrade dependencies.
     cmd = f"npx ncu --upgrade --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
@@ -54,27 +55,30 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
     for component in components:
         # Backup package.json file
         package_json = os.path.join(component["location"], "package.json")
-        if os.path.exists(package_json):
-            copy(package_json, package_json + ".bak")
-        else:
-            raise PrintMessageError(
-                f"""
-ERROR:
-  The Lerna component '{component['name']}' does not contain a package.json file.
-""")
+        copy(package_json, package_json + ".bak")
 
 
 def cleanup_on_success(components: t.List[LernaComponent]) -> None:
-    """ Removes backup of all component's package.json files. """
-    for cmp in components:
-        pkg_json_file = os.path.join(cmp["location"], "package.json")
+    """ Removes package.json backups and linked .npmrc files. """
+    for component in components:
+        # Remove backup of package.json file
+        pkg_json_file = os.path.join(component["location"], "package.json")
         os.remove(pkg_json_file + ".bak")
+
+        # Remove linked .npmrc file
+        os.remove(os.path.join(component["location"], ".npmrc"))
 
 
 def cleanup_on_error(components: t.List[LernaComponent]) -> None:
-    """ Restores backup of all component's package.json files. """
-    for cmp in components:
-        pkg_json_file = os.path.join(cmp["location"], "package.json")
+    """ Restores package.json backups and removes linked .npmrc files. """
+    for component in components:
+        # Restore backup of package.json file
+        pkg_json_file = os.path.join(component["location"], "package.json")
         if os.path.exists(pkg_json_file + ".bak"):
             copy(pkg_json_file + ".bak", pkg_json_file)
             os.remove(pkg_json_file + ".bak")
+
+        # Remove linked .npmrc file
+        npmrc = os.path.join(component["location"], ".npmrc")
+        if os.path.exists(npmrc):
+            os.remove(npmrc)

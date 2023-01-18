@@ -8,7 +8,7 @@ import semantic_version as semver
 from PyInquirer import prompt
 
 from utils import (
-        LernaComponent, PrintMessageError, app_on_error, cmd_helper, copy, echo, reinstall_dependencies,
+        LernaComponent, app_on_error, cmd_helper, copy, echo, link_npmrc_file, reinstall_dependencies,
         run_process)
 
 # Type of single Lerna component version.
@@ -31,8 +31,9 @@ def run(no_git: bool) -> bool:
     # (node_modules changes persist however).
     app_on_error.append(functools.partial(cleanup_on_error, components))
 
-    # Create backups of package.json and package-lock.json files.
+    # Create backups of package.json and package-lock.json files, and link .npmrc file.
     backup_package_files(components)
+    link_npmrc_file(root, components)
 
     # Prepare Lerna components for dependency updates and auditing. Remove Lerna managed components
     # from package.json files to ignore them during updating and auditing.
@@ -110,14 +111,7 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
     for component in components:
         # Backup package.json file
         package_json = os.path.join(component["location"], "package.json")
-        if os.path.exists(package_json):
-            copy(package_json, package_json + ".bak")
-        else:
-            raise PrintMessageError(
-                f"""
-ERROR:
-  The Lerna component '{component['name']}' does not contain a package.json file.
-""")
+        copy(package_json, package_json + ".bak")
 
         # Backup package-lock.json file
         package_lock = os.path.join(component["location"], "package-lock.json")
@@ -232,18 +226,26 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
         os.remove(pkg_json_file + ".bak")
         os.remove(pkg_lock_file + ".bak")
 
+        # Remove linked .npmrc file
+        os.remove(os.path.join(component["location"], ".npmrc"))
+
 
 def cleanup_on_error(components: t.List[LernaComponent]) -> None:
-    """ Restores backups of all component's package and lock files. """
+    """ Restores package.json backups and removes linked .npmrc files. """
 
     def try_restore_bak_file(file: str) -> None:
         if os.path.exists(file + ".bak"):
             copy(file + ".bak", file)
             os.remove(file + ".bak")
 
-    for cmp in components:
+    for component in components:
         # Restore backup of package.json file
-        try_restore_bak_file(os.path.join(cmp["location"], "package.json"))
+        try_restore_bak_file(os.path.join(component["location"], "package.json"))
 
         # Restore backup of package-lock.json file
-        try_restore_bak_file(os.path.join(cmp["location"], "package-lock.json"))
+        try_restore_bak_file(os.path.join(component["location"], "package-lock.json"))
+
+        # Remove linked .npmrc file
+        npmrc = os.path.join(component["location"], ".npmrc")
+        if os.path.exists(npmrc):
+            os.remove(npmrc)

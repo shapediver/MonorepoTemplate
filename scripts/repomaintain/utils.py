@@ -148,6 +148,16 @@ def copy(src: str, dst: str) -> None:
         shutil.copy(src, dst)
 
 
+def link_npmrc_file(root: str, components: t.List[LernaComponent]) -> None:
+    """ Tries to copy the .npmrc file of the repository's root to each component. """
+    npmrc = os.path.join(root, ".npmrc")
+    if os.path.exists(npmrc):
+        for component in [c for c in components if c["name"] != "root"]:
+            copy(npmrc, os.path.join(component["location"], ".npmrc"))
+    else:
+        echo(f"Could not find file {npmrc}.", "wrn")
+
+
 def reinstall_dependencies(root: str) -> None:
     """ Re-installs dependencies in all Lerna components including root. """
     run_process("npm i", root, get_output=False)
