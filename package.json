@@ -12,6 +12,8 @@
     "add-devDependency": "bash ./scripts/add-devDependency.sh",
     "update": "bash ./scripts/python_cli.sh update",
     "publish": "lerna publish --force-publish --no-push --registry https://npm.pkg.github.com/",
+    "pre-publish-global": "bash ./scripts/pre-publish-global.sh",
+    "post-publish-global": "bash ./scripts/post-publish-global.sh",
     "init": "bash ./scripts/init.sh",
     "test": "npm run check-npm-version && lerna run test",
     "build": "npm run check-npm-version && lerna run build",

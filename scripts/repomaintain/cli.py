@@ -3,6 +3,7 @@ import typing as t
 
 import click
 
+from cmd_publish import run as run_publish
 from cmd_update import run as run_update
 from cmd_upgrade import run as run_upgrade
 from utils import PrintMessageError, app_on_error, app_on_success, echo
@@ -85,6 +86,45 @@ def upgrade(target, dep_filter, dep_exclude) -> None:
     Run the `update` command to finalize the changes.
     """
     cmd_wrapper(run_upgrade, target, dep_filter, dep_exclude)
+
+
+@main.command()
+@click.option(
+    "--dry-run",
+    type=bool,
+    help="Doesn't publish or commit anything.",
+    is_flag=True)
+def publish(dry_run) -> None:
+    """
+    Publishes one or more components.
+
+    Interactive command to release one or more Lerna managed components.
+    The workflow is as follows:
+
+      1. Ask the user which components to release, which version(s) to use, and to which registries
+    the components should be published to.
+
+      2. Call `scripts/pre-publish-global.sh`.
+
+      3. Increment versions in package.json files. This also updates the version of linked internal
+    dependencies but keeps semantic versioning policies.
+
+      4. For each component selected for publishing:
+
+        4a. Call `scripts/pre-publish.sh`.
+
+        4b. Publish the component to the selected registries.
+
+        4c. Call `scripts/post-publish.sh`.
+
+      5. Create Git commit and tags (skipped when flag `--dry-run` is set).
+
+      6. Call `scripts/post-publish-global.sh`.
+
+      7. Push current Git branch and the created tags to 'origin' (skipped when flag `--dry-run` is
+    set).
+    """
+    cmd_wrapper(run_publish, dry_run)
 
 
 if __name__ == "__main__":

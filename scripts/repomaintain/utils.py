@@ -192,12 +192,26 @@ def remove(src: str, *, must_exist: bool = False) -> None:
     os.remove(src)
 
 
-def link_npmrc_file(root: str, components: t.List[LernaComponent]) -> None:
-    """ Tries to copy the .npmrc file of the repository's root to each component. """
+def link_npmrc_file(
+        root: str,
+        components: t.List[LernaComponent],
+        *,
+        must_exist: bool = False,
+) -> None:
+    """
+    Tries to copy the .npmrc file of the repository's root to each component.
+
+    :param root: The path of the Git repository's root folder.
+    :param components: The Lerna components that should get a copy of the .npmrc file.
+    :param must_exist: Stops when set to `true` and the file was not found.
+    :raise FileNotFoundError: When the file was not found and `must_exist=True`.
+    """
     npmrc = os.path.join(root, ".npmrc")
     if os.path.exists(npmrc):
         for component in [c for c in components if c['name'] != "root"]:
             copy(npmrc, os.path.join(component['location'], ".npmrc"))
+    elif must_exist:
+        raise PrintMessageError(f"\nERROR:\n  Could not link {npmrc}: File does not exist.")
     else:
         echo(f"Could not find file {npmrc}.", 'wrn')
 

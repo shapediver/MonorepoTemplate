@@ -1,4 +1,5 @@
 {
   "scope": "test",
-  "initialized": false
+  "initialized": false,
+  "cli_publish_tag": "monorepo"
 }
