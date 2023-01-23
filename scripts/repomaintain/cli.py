@@ -8,9 +8,9 @@ from cmd_upgrade import run as run_upgrade
 from utils import PrintMessageError, app_on_error, app_on_success, echo
 
 
-def handler(status: t.Literal["ok", "err"]) -> None:
+def handler(status: t.Literal['ok', 'err']) -> None:
     """ Process all cleanup functions that have been registered for the respective status. """
-    fns = app_on_success if status == "ok" else app_on_error
+    fns = app_on_success if status == 'ok' else app_on_error
     for fn in fns:
         fn()
 
@@ -19,16 +19,16 @@ def cmd_wrapper(cmd_fn: t.Callable[[t.Any], bool], *args) -> None:
     """ Wrapper around a command function that allows to use `click` functions. """
     try:
         res = cmd_fn(*args)
-        handler("ok" if res else "err")
+        handler('ok' if res else 'err')
     except KeyboardInterrupt:
-        echo("Process got interrupted.", "wrn")
-        handler("err")
+        echo("Process got interrupted.", 'wrn')
+        handler('err')
     except PrintMessageError as e:
-        echo(str(e), "err")
-        handler("err")
+        echo(str(e), 'err')
+        handler('err')
     except:
         traceback.print_exc()
-        handler("err")
+        handler('err')
 
 
 @click.group()
@@ -53,7 +53,7 @@ def update(no_git) -> None:
 @click.option(
     "-t",
     "--target",
-    type=click.Choice(["major", "minor", "patch"], case_sensitive=False),
+    type=click.Choice(['major','minor', 'patch'], case_sensitive=False),
     prompt="Target version",
     help="Determines the version to upgrade to.")
 @click.option(

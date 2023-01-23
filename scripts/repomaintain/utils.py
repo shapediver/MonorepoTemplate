@@ -8,13 +8,14 @@ from subprocess import DEVNULL, STDOUT, run
 
 import click
 import git
+from PyInquirer import prompt
 
 # Type of single Lerna component
 LernaComponent = t.TypedDict('LernaComponent', {
-    "name": str,
-    "version": str,
-    "private": bool,
-    "location": str,
+    'name': str,
+    'version': str,
+    'private': bool,
+    'location': str,
 })
 
 # Holds functions that should be executed when the application completed successfully.
@@ -32,7 +33,7 @@ class PrintMessageError(Exception):
 
 def echo(
         out: t.Union[str, list, dict],
-        lvl: t.Literal["log", "wrn", "err"] = "log"
+        lvl: t.Literal['log', 'wrn', 'err'] = 'log'
 ) -> None:
     """ Prints the given text or object to the terminal. """
     # Prettify exceptions, list and dict objects.
@@ -42,12 +43,12 @@ def echo(
         out = json.dumps(out, indent=2)
 
     # Determine the foreground color according to the log-level.
-    if lvl == "log":
-        fg = "magenta"
-    elif lvl == "wrn":
-        fg = "yellow"
+    if lvl == 'log':
+        fg = 'magenta'
+    elif lvl == 'wrn':
+        fg = 'yellow'
     else:
-        fg = "red"  # lvl == "err"
+        fg = 'red'  # lvl == 'err'
 
     click.secho(out, fg=fg)
 
@@ -58,11 +59,20 @@ def git_repo() -> git.Repo:
     return git.Repo(file_path, search_parent_directories=True)
 
 
+def ask_user(questions: t.List[t.Dict[str, t.Any]]) -> t.Dict[str, t.Any]:
+    """ Wrapper around `PyInquirer.prompt` that catches user interrupts. """
+    answers = prompt(questions)
+    if len(answers) == 0:
+        raise KeyboardInterrupt
+    else:
+        return answers
+
+
 def run_process(
         args: str,
         cwd: str,
         *,
-        get_output: bool = True,
+        get_output: bool = False,
         show_output: bool = True,
 ) -> t.Optional[str]:
     """
@@ -87,7 +97,7 @@ def run_process(
         err = STDOUT if out is not None else None
 
         # Activate shell mode on Windows systems, but disable it on Unix systems.
-        if sys.platform == "win32" or sys.platform == "cygwin":
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
             shell = True
         else:
             shell = False
@@ -108,11 +118,11 @@ def run_process(
 
             # Add details about command error if available
             if process.stderr is not None:
-                raise exp from RuntimeError(process.stderr.decode("utf-8"))
+                raise exp from RuntimeError(process.stderr.decode('utf-8'))
             else:
                 raise exp from None
         elif get_output:
-            return process.stdout.decode("utf-8")
+            return process.stdout.decode('utf-8')
         else:
             return None
 
@@ -124,18 +134,24 @@ def get_lerna_components(root: str) -> t.List[LernaComponent]:
     :param root: The path of the Git repository's root folder.
     :return: List of all local components in topological order.
     """
-    res = run_process("npx lerna list --all --toposort --json", root)
+    res = run_process("npx lerna list --all --toposort --json", root, get_output=True)
     return json.loads(res)
 
 
-def copy(src: str, dst: str) -> None:
+def copy(src: str, dst: str, *, must_exist: bool = False) -> None:
     """
     Copies the given file or symlink to the specified location; overrides if it already exists.
 
     :param src: The path of the source file or symlink to copy.
     :param dst: The destination path.
-    :raise FileNotFoundError: When the source file was not found.
+    :param must_exist: Stops when set to `true` and the source file was not found.
+    :raise FileNotFoundError: When the source file was not found and `must_exist=True`.
     """
+    # Stop when file was not found
+    if not must_exist and not os.path.exists(src):
+        print(f"COPY NOPE: {must_exist}, {os.path.exists(src)}")
+        return
+
     if os.path.islink(src):
         # Manual removal of already existing symlink
         if os.path.exists(dst):
@@ -148,24 +164,52 @@ def copy(src: str, dst: str) -> None:
         shutil.copy(src, dst)
 
 
+def move(src: str, dst: str, *, must_exist: bool = False) -> None:
+    """
+    Moves the given file or symlink from the specified location; overrides if it already exists.
+
+    :param src: The path of the source file or symlink to move.
+    :param dst: The destination path.
+    :param must_exist: Stops when set to `true` and the source file was not found.
+    :raise FileNotFoundError: When the source file was not found and `must_exist=True`.
+    """
+    copy(src, dst, must_exist=must_exist)
+    remove(src, must_exist=must_exist)
+
+
+def remove(src: str, *, must_exist: bool = False) -> None:
+    """
+    Removes the given file or symlink.
+
+    :param src: The path of the file or symlink to remove.
+    :param must_exist: Stops when set to `true` and the file was not found.
+    :raise FileNotFoundError: When the file was not found and `must_exist=True`.
+    """
+    # Stop when file was not found
+    if not must_exist and not os.path.exists(src):
+        return
+
+    os.remove(src)
+
+
 def link_npmrc_file(root: str, components: t.List[LernaComponent]) -> None:
     """ Tries to copy the .npmrc file of the repository's root to each component. """
     npmrc = os.path.join(root, ".npmrc")
     if os.path.exists(npmrc):
-        for component in [c for c in components if c["name"] != "root"]:
-            copy(npmrc, os.path.join(component["location"], ".npmrc"))
+        for component in [c for c in components if c['name'] != "root"]:
+            copy(npmrc, os.path.join(component['location'], ".npmrc"))
     else:
-        echo(f"Could not find file {npmrc}.", "wrn")
+        echo(f"Could not find file {npmrc}.", 'wrn')
 
 
 def reinstall_dependencies(root: str) -> None:
     """ Re-installs dependencies in all Lerna components including root. """
-    run_process("npm i", root, get_output=False)
-    run_process("npx lerna clean --yes", root, get_output=False)
-    run_process("npx lerna bootstrap", root, get_output=False)
+    run_process("npm i", root)
+    run_process("npx lerna clean --yes", root)
+    run_process("npx lerna bootstrap", root)
 
 
-def cmd_helper(no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
+def cmd_helper(*, no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
     """
     Helper function to initialize a CLI command.
 
@@ -191,12 +235,12 @@ def cmd_helper(no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
     components = get_lerna_components(root)
     echo(f"Found {len(components)} components managed by Lerna.")
 
-    # Add the repo's root to the component list.
+    # Add the repo's root to the component list if requested.
     components.append({
-        "name": "root",
-        "version": "",
-        "private": True,
-        "location": root,
+        'name': "root",
+        'version': "",
+        'private': True,
+        'location': root,
     })
 
     return repo, root, components
