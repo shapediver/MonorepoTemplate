@@ -96,6 +96,23 @@ In case you want `three` in all packages and libs you can call `npm run add-depe
 Now I want to add `a_package` to `another_package` (both are part of this repository).
 This works just similarly with `npm run add-dependency @shapediver/test.a_package @shapediver/test.another_package`.
 
+## Managing dependencies
+
+Create an OAuth access token for Confluence:
+1. Open the [ShapeDiver Atlassian board](https://shapediver.atlassian.net) and make sure that you are logged in.
+2. Click your _user icon_ in the upper right corner and select "_Manage account_".
+3. From there select the "_Security_" sub-page and click the link "_Create and manage API tokens_".
+4. Create a new API token with whatever name you like. 
+
+Create on the root of this repository a `.atlassianrc` file with the following content.
+```
+{
+    "username": "EMAIL",
+    "api_token": "TOKEN"
+}
+```
+Replace `TOKEN` with the access token that you just created, and replace `EMAIL` with your ShapeDiver email address.
+
 ## 4. Building
 
 There are various build tasks for different scenarios in each package.

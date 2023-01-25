@@ -4,6 +4,7 @@ import typing as t
 import click
 
 from cmd_publish import run as run_publish
+from cmd_sd_global import run as run_sd_global
 from cmd_update import run as run_update
 from cmd_upgrade import run as run_upgrade
 from utils import PrintMessageError, app_on_error, app_on_success, echo
@@ -33,13 +34,13 @@ def cmd_wrapper(cmd_fn: t.Callable[[t.Any], bool], *args) -> None:
 
 
 @click.group()
-def main() -> None:
+def cli() -> None:
     pass
 
 
-@main.command()
+@cli.command()
 @click.option("--no-git", type=bool, help="Don't run any Git commands.", is_flag=True)
-def update(no_git) -> None:
+def update(no_git: bool) -> None:
     """
     Update and audit dependencies.
 
@@ -50,11 +51,11 @@ def update(no_git) -> None:
     cmd_wrapper(run_update, no_git)
 
 
-@main.command()
+@cli.command()
 @click.option(
     "-t",
     "--target",
-    type=click.Choice(['major','minor', 'patch'], case_sensitive=False),
+    type=click.Choice(['major', 'minor', 'patch'], case_sensitive=False),
     prompt="Target version",
     help="Determines the version to upgrade to.")
 @click.option(
@@ -72,7 +73,7 @@ def update(no_git) -> None:
     type=str,
     help="Exclude packages matching the given string, wildcard, /regex/ or comma-delimited list.",
     default=None)
-def upgrade(target, dep_filter, dep_exclude) -> None:
+def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     """
     Upgrades dependencies to the latest versions.
 
@@ -85,16 +86,16 @@ def upgrade(target, dep_filter, dep_exclude) -> None:
     THIS PROCESS DOES NOT AUDIT THE NEW DEPENDENCIES OR UPDATES THE LOCK FILE!
     Run the `update` command to finalize the changes.
     """
-    cmd_wrapper(run_upgrade, target, dep_filter, dep_exclude)
+    cmd_wrapper(run_upgrade, target.lower(), dep_filter, dep_exclude)
 
 
-@main.command()
+@cli.command()
 @click.option(
     "--dry-run",
     type=bool,
     help="Doesn't publish or commit anything.",
     is_flag=True)
-def publish(dry_run) -> None:
+def publish(dry_run: bool) -> None:
     """
     Publishes one or more components.
 
@@ -127,5 +128,24 @@ def publish(dry_run) -> None:
     cmd_wrapper(run_publish, dry_run)
 
 
+@cli.command()
+@click.argument(
+    "command",
+    type=click.Choice(['list-pinned', 'update-pinned'], case_sensitive=False))
+def sd_global(command: str) -> None:
+    """
+    Interact with the ShapeDiver global configuration.
+
+    COMMANDS:
+
+      [list-pinned] List all globally pinned TypeScript dependencies.
+
+      [update-pinned] Apply globally pinned TypeScript dependencies to local package.json files and
+    update the repository list of the Confluence page with all pinned dependencies that are
+    currently used by at least on Lerna managed component.
+    """
+    cmd_wrapper(run_sd_global, command.lower())
+
+
 if __name__ == "__main__":
-    main()
+    cli()

@@ -10,7 +10,7 @@ import semantic_version as semver
 
 from utils import (
     LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy, echo,
-    link_npmrc_file, remove, run_process)
+    link_npmrc_file, remove, run_process, unlink_npmrc_file)
 
 REGISTRY_GITHUB = "https://npm.pkg.github.com/"
 REGISTRY_NPM = "https://registry.npmjs.org/"
@@ -81,8 +81,7 @@ def run(
             echo("Publishing to NPM:")
 
             # Authorization is done via NPM CLI login -> remove .npmrc file when found.
-            npmrc_file = os.path.join(c['component']['location'], ".npmrc")
-            remove(npmrc_file)
+            unlink_npmrc_file(c['component'])
 
             run_process(cmd + REGISTRY_NPM, c['component']['location'])
 
@@ -518,7 +517,5 @@ def cleanup(components: t.List[LernaComponent]) -> None:
         pkg_json_bak_file = os.path.join(c['location'], "package.json.bak")
         remove(pkg_json_bak_file + ".bak")
 
-        if c['name'] != "root":
-            # Remove linked .npmrc file (might be created for GitHub push).
-            npmrc_file = os.path.join(c['location'], ".npmrc")
-            remove(npmrc_file)
+        # Remove linked .npmrc file (might be created for GitHub push).
+        unlink_npmrc_file(c)

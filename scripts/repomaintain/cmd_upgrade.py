@@ -4,8 +4,8 @@ import shlex
 import typing as t
 
 from utils import (
-    LernaComponent, app_on_error, cmd_helper, copy, echo, link_npmrc_file, move,
-    reinstall_dependencies, remove, run_process)
+    LernaComponent, app_on_error, cmd_helper, copy, echo, fetch_globally_pinned_dependencies,
+    link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
 
 
 def run(
@@ -16,6 +16,10 @@ def run(
     # Initialize repo object and search for Lerna components.
     repo, root, components = cmd_helper(no_git=True)
 
+    # Fetch globally pinned dependencies. These packages have to be ignored in the upgrade process.
+    pinned_deps = fetch_globally_pinned_dependencies(root)
+    pinned_deps_string = ",".join([p['name'] for p in pinned_deps])
+
     # Register cleanup handler for error case - We want to undo the upgrade call.
     app_on_error.append(functools.partial(cleanup_on_error, components))
 
@@ -23,10 +27,18 @@ def run(
     backup_package_files(components)
     link_npmrc_file(root, components)
 
+    # Exclude packages that are globally pinned, or dependencies that have been explicitly excluded
+    # by the user.
+    #
+    # Note:
+    #  ncu is very flexible here, so no problem mixing a comma-separated-list with space-separated
+    #  components, a leading comma, or duplicated dependencies.
+    reject = pinned_deps_string + "," + (dep_exclude or "")
+
     # Build command to upgrade dependencies.
     cmd = f"npx ncu --upgrade --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
-    if dep_exclude is not None:
-        cmd += f" --reject {shlex.quote(dep_exclude)}"
+    if reject != ",":
+        cmd += f" --reject {shlex.quote(reject)}"
 
     for component in components:
         echo(f"\nUpgrading dependencies of component {component['name']}:")
@@ -62,8 +74,7 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
         remove(pkg_json_bak_file + ".bak")
 
         # Remove linked .npmrc file.
-        npmrc_file = os.path.join(component['location'], ".npmrc")
-        remove(npmrc_file)
+        unlink_npmrc_file(component)
 
 
 def cleanup_on_error(components: t.List[LernaComponent]) -> None:
@@ -74,5 +85,4 @@ def cleanup_on_error(components: t.List[LernaComponent]) -> None:
         move(pkg_json_file + ".bak", pkg_json_file)
 
         # Remove linked .npmrc file.
-        npmrc_file = os.path.join(component['location'], ".npmrc")
-        remove(npmrc_file)
+        unlink_npmrc_file(component)

@@ -8,7 +8,7 @@ import semantic_version as semver
 
 from utils import (
     LernaComponent, app_on_error, ask_user, cmd_helper, copy, echo, link_npmrc_file,
-    reinstall_dependencies, run_process, move, remove)
+    move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
 
 # Type of single Lerna component version.
 ComponentVersion = t.TypedDict('ComponentVersion', {
@@ -215,8 +215,7 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
         remove(pkg_lock_file + ".bak")
 
         # Remove linked .npmrc file.
-        npmrc_file = os.path.join(component['location'], ".npmrc")
-        remove(npmrc_file)
+        unlink_npmrc_file(component)
 
 
 def cleanup_on_error(components: t.List[LernaComponent]) -> None:
@@ -231,5 +230,4 @@ def cleanup_on_error(components: t.List[LernaComponent]) -> None:
         move(pkg_lock_file + ".bak", pkg_lock_file)
 
         # Remove linked .npmrc file.
-        npmrc_file = os.path.join(component['location'], ".npmrc")
-        remove(npmrc_file)
+        unlink_npmrc_file(component)

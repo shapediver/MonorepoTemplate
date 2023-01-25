@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -9,6 +10,23 @@ from subprocess import DEVNULL, STDOUT, run
 import click
 import git
 from PyInquirer import prompt
+from atlassian import Confluence
+from bs4 import BeautifulSoup
+from requests import HTTPError
+
+ATLASSIAN_URL = "https://shapediver.atlassian.net"
+ATLASSIAN_SPACE_KEY = "SS"  # ShapeDiver Scrum
+ATLASSIAN_PAGE_TITLE = "Pinned Dependency Versions"
+ATLASSIAN_DOC_VERSION = "1"  # Specified in the Confluence page
+
+# Type of single dependency that is globally pinned in Confluence.
+GloballyPinnedDependency = t.TypedDict('GloballyPinnedDependency', {
+    'name': str,
+    'version': str,
+    # 'author': str,
+    'reason': str,
+    'repositories': t.List[str]
+})
 
 # Type of single Lerna component
 LernaComponent = t.TypedDict('LernaComponent', {
@@ -213,7 +231,15 @@ def link_npmrc_file(
     elif must_exist:
         raise PrintMessageError(f"\nERROR:\n  Could not link {npmrc}: File does not exist.")
     else:
-        echo(f"Could not find file {npmrc}.", 'wrn')
+        echo(f"Could not read {npmrc}: File does not exist.", 'wrn')
+
+
+def unlink_npmrc_file(component: LernaComponent) -> None:
+    """ Removes a linked .npmrc file if found. """
+    if component['name'] != "root":
+        # Remove linked .npmrc file.
+        npmrc_file = os.path.join(component['location'], ".npmrc")
+        remove(npmrc_file)
 
 
 def reinstall_dependencies(root: str) -> None:
@@ -221,6 +247,156 @@ def reinstall_dependencies(root: str) -> None:
     run_process("npm i", root)
     run_process("npx lerna clean --yes", root)
     run_process("npx lerna bootstrap", root)
+
+
+def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
+    """
+    Try to connect to Confluence, fetch the page and return the parsed HTML content.
+
+    :param root: The path of the Git repository's root folder.
+    :return: [0] The connection to Confluence. [1] The ID of the Confluence page. [2] The HTML
+    wrapper around the content of the Confluence page.
+    :raise PrintMessageError: When the page cannot get fetched or parsed, or when the ShapeDiver
+    version of the page does not match.
+    """
+    # Check existence of configuration file.
+    atlassianrc = os.path.join(root, ".atlassianrc")
+    if not os.path.exists(atlassianrc):
+        raise PrintMessageError(f"\nERROR:\n  Could not read {atlassianrc}: File does not exist.")
+
+    # Open and parse configuration file.
+    with open(atlassianrc, 'r') as reader:
+        config: t.TypedDict[str, str] = json.load(reader)
+
+    # Instantiate client, no authentication performed yet.
+    confluence = Confluence(
+        url=ATLASSIAN_URL,
+        username=config['username'],
+        password=config['api_token'],
+        cloud=True)
+
+    # Check if user is authenticated and try to fetch the Confluence page.
+    try:
+        page_id = confluence.get_page_id(space=ATLASSIAN_SPACE_KEY, title=ATLASSIAN_PAGE_TITLE)
+    except HTTPError as e:
+        raise PrintMessageError(
+            f"""ERROR:
+  Could not establish connection to Confluence service.
+  {str(e)}
+""")
+
+    # Make sure that the Confluence page exists.
+    if page_id is None:
+        raise PrintMessageError(
+            f"""ERROR:
+  Could not find Confluence page '{ATLASSIAN_PAGE_TITLE}' in space '{ATLASSIAN_SPACE_KEY}'.
+  Please check if these settings have been updated in the Git repository 'MonorepoTemplate' and
+  downstream the changes if necessary.
+""")
+
+    # Load the content data of the page (is in HTML format)
+    page_json = confluence.get_page_by_id(page_id, expand='body.storage')
+    soup = BeautifulSoup(page_json['body']['storage']['value'], 'html.parser')
+
+    # Check the ShapeDiver version of the Confluence page. This prevents old versions of this CLI
+    # tool to mess with the page.
+    # sd_version = soup.find(attrs={"data-panel-type": "info"})
+    sd_version_element = soup.find(text=re.compile(r'^Processor Version:\s*\d+\s*$'))
+    sd_version = sd_version_element.split(": ")[1].strip()
+    if sd_version != ATLASSIAN_DOC_VERSION:
+        raise PrintMessageError("""
+        ERROR:
+  You are currently using an old version of the CLI tool. Please downstream the changes made in the
+  Git repository 'MonorepoTemplate' before running this command again.
+""")
+
+    return confluence, page_id, soup
+
+
+def fetch_globally_pinned_dependencies(root: str) -> t.List[GloballyPinnedDependency]:
+    """ Fetches all globally pinned typeScript packages and returns their information. """
+    # Connect, fetch and parse Confluence page.
+    _, _, page = get_confluence_page(root)
+
+    # Globally pinned versions are specified in an HTML table element. The first row represents the
+    # header row and can be skipped. The other rows contain each a single pinned dependency.
+    rows = page.find('table').find_all('tr')
+    globally_pinned_dependencies: t.List[GloballyPinnedDependency] = []
+    try:
+        for tr in rows[1:]:
+            td = tr.find_all('td')
+            globally_pinned_dependencies.append({
+                'name': td[0].string,
+                'version': td[1].string,
+                # 'author': td[2].find('ri:user')['ri:account-id'],
+                'reason': td[3].string,
+                'repositories': [i.strip() for i in (td[4].string or "").split(',') if not i.isspace() and i != ""]
+            })
+    except Exception:
+        raise PrintMessageError(
+            f"""ERROR:
+  Could not extract information from the Confluence page '{ATLASSIAN_PAGE_TITLE}'.
+  Please check if the formatting of the Confluence page is off, or if there are updates available in
+  the Git repository 'MonorepoTemplate'.
+""")
+
+    return globally_pinned_dependencies
+
+
+def update_globally_pinned_dependencies(
+        repo: git.Repo,
+        root: str,
+        pinned_deps_in_use: t.Set[str],
+) -> None:
+    """
+    Updates the repositories list of globally pinned dependencies.
+
+    :param repo: The Git repository object.
+    :param root: The path of the Git repository's root folder.
+    :param pinned_deps_in_use: A list of names from all globally pinned packages that is used by at
+    least one Lerna managed component in this repository.
+    :return:
+    """
+    # Connect, fetch and parse Confluence page.
+    confluence, page_id, page = get_confluence_page(root)
+
+    # Get the remote name of this Git repository.
+    repo_name = repo.remotes.origin.url.split('.git')[0].split('/')[-1]
+
+    # Globally pinned versions are specified in an HTML table element. The first row represents the
+    # header row and can be skipped. The other rows contain each a single pinned dependency.
+    rows = page.find('table').find_all('tr')
+    changes_applied = False
+    try:
+        for tr in rows[1:]:
+            # Extract package name and currently registered repositories.
+            td = tr.find_all('td')
+            name = td[0].string
+            repositories = [i.strip() for i in (td[4].string or "").split(',') if not i.isspace() and i != ""]
+
+            # Add this repository name if used and not listed, and remove it if listed but not used.
+            if name in pinned_deps_in_use and repo_name not in repositories:
+                repositories.append(repo_name)
+                changes_applied = True
+            elif name not in pinned_deps_in_use and repo_name in repositories:
+                repositories.remove(repo_name)
+                changes_applied = True
+
+            td[4].string = ", ".join(repositories)
+    except Exception:
+        raise PrintMessageError(
+            f"""ERROR:
+  Could not extend information in the Confluence page '{ATLASSIAN_PAGE_TITLE}'.
+  Please check if the formatting of the Confluence page is off, or if there are updates available in
+  the Git repository 'MonorepoTemplate'.
+""")
+
+    # Upload updated content of the Confluence page when something has changed. This way, we prevent
+    # the creation of unnecessary page versions in Confluence.
+    if changes_applied:
+        confluence.update_page(page_id, ATLASSIAN_PAGE_TITLE, str(page))
+
+    echo("\nThe repository list of the Confluence page has been updated successfully.")
 
 
 def cmd_helper(*, no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
@@ -235,7 +411,7 @@ def cmd_helper(*, no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]
     repo = git_repo()
 
     # The absolute path of the Git repository's root folder.
-    root = git_repo().git.rev_parse("--show-toplevel")
+    root = repo.git.rev_parse("--show-toplevel")
 
     # Stop processing when open changes have been detected.
     if not no_git and repo.is_dirty():

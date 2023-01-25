@@ -11,5 +11,8 @@ lerna-debug.log
 pip-log.txt
 __pycache__/
 
+# Miscellaneous
+.atlassianrc
+
 # JetBrains products are ignored by default - remove where needed
 .idea/
