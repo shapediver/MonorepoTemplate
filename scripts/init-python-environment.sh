@@ -18,10 +18,15 @@ python -m venv "${__dir}/../.venv"
 # Activate virtual environment
 activate_python_venv
 
-# Install all dependencies
+# Install all dependencies needed for Monorepo scripts
 if [ -f "${__dir}/../requirements.txt" ]; then
   pip install -r "${__dir}/../requirements.txt"
 else
   echo "Could not install Python dependencies: File requirements.txt was not found."
   exit 1
+fi
+
+# Install all dependencies needed for custom Python scripts
+if [ -f "${__dir}/custom/requirements.txt" ]; then
+  pip install -r "${__dir}/custom/requirements.txt"
 fi
