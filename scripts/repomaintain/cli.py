@@ -1,3 +1,4 @@
+import sys
 import traceback
 import typing as t
 
@@ -12,9 +13,13 @@ from utils import PrintMessageError, app_on_error, app_on_success, echo
 
 def handler(status: t.Literal['ok', 'err']) -> None:
     """ Process all cleanup functions that have been registered for the respective status. """
-    fns = app_on_success if status == 'ok' else app_on_error
-    for fn in fns:
-        fn()
+    if status == 'ok':
+        for fn in app_on_success:
+            fn()
+    else:
+        for fn in app_on_error:
+            fn()
+        sys.exit(1)
 
 
 def cmd_wrapper(cmd_fn: t.Callable[[t.Any], bool], *args) -> None:
