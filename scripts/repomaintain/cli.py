@@ -95,7 +95,12 @@ def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     type=bool,
     help="Doesn't publish or commit anything.",
     is_flag=True)
-def publish(dry_run: bool) -> None:
+@click.option(
+    "--always-ask",
+    type=bool,
+    help="Always asks the user and sets answers as default values for invocations.",
+    is_flag=True)
+def publish(dry_run: bool, always_ask: bool) -> None:
     """
     Publishes one or more components.
 
@@ -125,7 +130,7 @@ def publish(dry_run: bool) -> None:
       7. Push current Git branch and the created tags to 'origin' (skipped when flag `--dry-run` is
     set).
     """
-    cmd_wrapper(run_publish, dry_run)
+    cmd_wrapper(run_publish, dry_run, always_ask)
 
 
 @cli.command()

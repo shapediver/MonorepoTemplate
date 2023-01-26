@@ -9,8 +9,9 @@ import git
 import semantic_version as semver
 
 from utils import (
-    LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy, echo,
-    link_npmrc_file, remove, run_process, unlink_npmrc_file)
+    CliConfig, LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy,
+    echo, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
+    update_cli_config)
 
 REGISTRY_GITHUB = "https://npm.pkg.github.com/"
 REGISTRY_NPM = "https://registry.npmjs.org/"
@@ -22,14 +23,16 @@ PublishableComponent = t.TypedDict('PublishableComponent', {
 })
 
 
-def run(
-        dry_run: bool,
-) -> bool:
+def run(dry_run: bool, always_ask: bool) -> bool:
     # Initialize repo object and search for Lerna components.
     repo, root, all_components = cmd_helper(no_git=dry_run)
 
+    # Load cli config file.
+    config = load_cli_config(root)
+
     # Ask user which components should get published.
-    publishable_components = ask_user_for_components_and_version(all_components)
+    publishable_components = ask_user_for_components_and_version(
+        all_components, root, config, always_ask)
 
     # Ask user to which registries the selected components should be published to and make sure that
     # the user is already logged in for all selected registries.
@@ -92,10 +95,7 @@ def run(
     to_push: t.Union[None, t.List[str]] = None
     if not dry_run:
         to_push = ask_user_and_prepare_commit_and_tags(
-            root,
-            repo,
-            all_components,
-            publishable_components)
+            root, repo, config, all_components, publishable_components, always_ask)
     else:
         echo("\nSkipping Git commit and tag(s) creation.")
 
@@ -122,13 +122,22 @@ def run(
 
 def ask_user_for_components_and_version(
         components: t.List[LernaComponent],
+        root: str,
+        config: CliConfig,
+        always_ask: bool,
 ) -> t.List[PublishableComponent]:
     """
-    Ask the user which components should be published and their respective version.
+    Determine which components should be published and their respective version.
 
+    Either uses the configured selection or asks the user what to do.
+    :param components: All Lerna managed components.
+    :param root: The path of the Git repository's root folder.
+    :param config: The CLI configuration values.
+    :param always_ask: Disables and overrides default selection of answers.
     :raise PrintMessageError: When the user input is not processable.
     :return: A list of all selected components to publish and their respective new version.
     """
+    print()  # Add empty line
 
     def ask_for_new_version(old_version: str, cmp_name: t.Optional[str]) -> str:
         """ Helper function to ask the user which version should be used next. """
@@ -184,32 +193,40 @@ def ask_user_for_components_and_version(
     # We never publish components that are marked as "private".
     public_components = [c for c in components if c['private'] is False]
 
-    res: t.List[PublishableComponent] = []
-
     # Stop when no public components where found.
     if len(public_components) == 0:
         raise PrintMessageError("\nERROR:\n  Found no public components that are managed by Lerna.")
 
-    # Ask if all public components should be published or if components are published individually.
-    print()
-    answers = ask_user([{
-        'type': "list",
-        'name': "type",
-        'message': "What should get published:",
-        'choices': [
-            {
-                'name': "All public components.",
-                'value': "all",
-            },
-            {
-                'name': "Select individual components.",
-                'value': "select",
-            },
-        ],
-    }])
+    res: t.List[PublishableComponent] = []
 
-    if answers['type'] == "all":
-        # Stop when public components have not the same versions.
+    # Determine the publishing mode to use.
+    publishing_mode: t.Literal['all', 'independent']
+    if not always_ask and config['publish_mode'] is not None:
+        # Use publishing mode from config value.
+        publishing_mode = config['publish_mode']
+    else:
+        # Ask user which publishing mode to use and store the answer in cli config.
+        answers = ask_user([{
+            'type': "list",
+            'name': 'mode',
+            'message': "What should get published:",
+            'choices': [
+                {
+                    'name': "All public components.",
+                    'value': 'all',
+                },
+                {
+                    'name': "Select individual components.",
+                    'value': 'independent',
+                },
+            ],
+        }])
+        publishing_mode = answers['mode']
+        config['publish_mode'] = publishing_mode
+        update_cli_config(root, publish_mode=publishing_mode)
+
+    if publishing_mode == 'all':
+        # Sanity check: Stop when public components have not the same versions.
         unique_versions = list({c['version']: c for c in public_components}.keys())
         if len(unique_versions) > 1:
             msg = f"""
@@ -225,7 +242,7 @@ ERROR:
 
         # Map public components into publishable structure.
         res = [{'component': c, 'new_version': version} for c in public_components]
-    else:
+    elif publishing_mode == 'independent':
         # Ask user which public components should be published.
         answers = ask_user([{
             'type': "checkbox",
@@ -249,6 +266,13 @@ ERROR:
                 'component': c,
                 'new_version': ask_for_new_version(c['version'], c['name'])
             })
+    else:
+        # Catch invalid config values.
+        raise PrintMessageError(
+            f"""ERROR:
+  Unknown publishing mode '{publishing_mode}'.
+  Remove the property `repomaintain.publish_mode` in the `scope.json` file and try again.
+""")
 
     # Log a message that shows information about all components that will be published.
     msg = "\nYou selected the following components for publishing:\n"
@@ -302,8 +326,10 @@ ERROR:
 def ask_user_and_prepare_commit_and_tags(
         root: str,
         repo: git.Repo,
+        config: CliConfig,
         all_components: t.List[LernaComponent],
         published_components: t.List[PublishableComponent],
+        always_ask: bool,
 ) -> t.List[str]:
     """ Prepares the Git commit and tag(s). """
     # Add all package.json changes to the Git index.
@@ -315,69 +341,39 @@ def ask_user_and_prepare_commit_and_tags(
     index.commit("Publish")
     echo("\nCreated a new commit.")
 
-    answers = ask_user([{
-        'type': "list",
-        'name': "tag",
-        'message': "How many Git tags do you want to create:",
-        'choices': [
-            {
-                'name': "One - Create one summary Git tag for all published components.",
-                'value': "summary"
-            },
-            {
-                'name': "Many - Create a Git tag for each individual component that was published.",
-                'value': "individual"
-            }
-        ]
-    }])
-
     # Add the current branch (contains the publish-commits).
     to_push = [repo.active_branch.path]
 
-    if answers['tag'] == 'summary':
-        default_tag = None
+    # We want to enforce the following standard:
+    #   * One Git tag for repositories that publish all components with the same version. The name
+    #     of the shared tag is customizable by the user (<custom name>@<version>).
+    #   * Otherwise, each component gets its own Git tag (<pkg_name>@<version>).
+    if config['publish_mode'] == 'all':
+        # Note: Sanity check for #components, publish_mode and single version already done.
+        version = published_components[0]['new_version']
 
-        # Try to build default summary tag.
-        unique_versions = list({c['new_version']: c for c in published_components}.keys())
-        with open(os.path.join(root, "scope.json"), 'r') as reader:
-            scope_file: t.Dict[str, t.Any] = json.load(reader)
-        if len(unique_versions) == 1 and scope_file is not None and 'cli_publish_tag' in scope_file:
-            default_tag = f"{scope_file['cli_publish_tag']}@{unique_versions[0]}"
-
-        # Ask the user for a custom tag name.
-        choices = []
-        if default_tag is not None:
-            choices.append({
-                'name': f"Suggestion: '{default_tag}'.",
-                'value': "default"
-            })
-        answers = ask_user([{
-            'type': "list",
-            'name': "tag",
-            'message': "Specify the Git tag name:",
-            'choices': choices + [
-                {
-                    'name': "A custom tag.",
-                    'value': "custom"
-                }
-            ]
-        }])
-
-        if answers['tag'] == 'default':
-            tag = repo.create_tag(default_tag)
+        if (not always_ask and config['publish_tag_name'] is not None and
+                len(config['publish_tag_name']) > 0):
+            tag = repo.create_tag(f"{config['publish_tag_name']}@{version}")
             to_push.append(tag.path)
         else:
-            # Ask the user for a custom tag.
-            custom_tag = ""
-            while len(custom_tag) == 0:
+            # Ask the user for a custom tag name and store the answer in cli config.
+            echo(f"A single Git tag will be created for all components ('<name>@{version}').")
+
+            tag_name = ""
+            while len(tag_name) == 0:
                 answers = ask_user([{
                     'type': "input",
-                    'name': "custom_tag",
-                    'message': "Custom tag (non-empty string):"
+                    'name': "tag_name",
+                    'message': "Tag name (non-empty string):"
                 }])
-                custom_tag = str(answers['custom_tag']).strip().replace(' ', '_')
-            tag = repo.create_tag(custom_tag)
+                tag_name = str(answers['tag_name']).strip().replace(' ', '_')
+
+            tag = repo.create_tag(f"{tag_name}@{version}")
             to_push.append(tag.path)
+
+            config['publish_tag_name'] = tag_name
+            update_cli_config(root, publish_tag_name=tag_name)
     else:
         # Create one git tag for each published component.
         for c in published_components:

@@ -19,6 +19,12 @@ ATLASSIAN_SPACE_KEY = "SS"  # ShapeDiver Scrum
 ATLASSIAN_PAGE_TITLE = "Pinned Dependency Versions"
 ATLASSIAN_DOC_VERSION = "1"  # Specified in the Confluence page
 
+# Typed structure of the property `repomaintain` in `root/scope.json`.
+CliConfig = t.TypedDict('CliConfig', {
+    'publish_mode': t.Optional[t.Literal['all', 'independent']],
+    'publish_tag_name': t.Optional[str],
+})
+
 # Type of single dependency that is globally pinned in Confluence.
 GloballyPinnedDependency = t.TypedDict('GloballyPinnedDependency', {
     'name': str,
@@ -47,6 +53,72 @@ app_on_error: list[(): None] = []
 # Helper class to stop the CLI and print the error message without the stack trace.
 class PrintMessageError(Exception):
     pass
+
+
+def load_cli_config(root: str) -> CliConfig:
+    """ Reads and parses the CLI configuration properties. """
+    cli_config_file = os.path.join(root, "scope.json")
+
+    # Open and parse scope.json file.
+    with open(cli_config_file, 'r') as reader:
+        cli_config_content: t.Dict[str, t.Any] = json.load(reader)
+
+    mapped: CliConfig = {
+        'publish_mode': None,
+        'publish_tag_name': None,
+    }
+
+    # Extract config and map values
+    if 'repomaintain' in cli_config_content:
+        config = cli_config_content['repomaintain']
+    else:
+        return mapped
+
+    if 'publish_mode' in config:
+        if config['publish_mode'] == 'all' or config['publish_mode'] == 'independent':
+            mapped['publish_mode'] = config['publish_mode']
+
+    if 'publish_tag_name' in config:
+        mapped['publish_tag_name'] = config['publish_tag_name']
+
+    return mapped
+
+
+def update_cli_config(
+        root: str,
+        *,
+        publish_mode: t.Optional[t.Literal['all', 'independent']] = None,
+        publish_tag_name: t.Optional[str] = None,
+) -> None:
+    """ Overrides all CLI config properties that are specified and not `None`. """
+    cli_config_file = os.path.join(root, "scope.json")
+
+    # Open and parse scope.json file.
+    with open(cli_config_file, 'r') as reader:
+        cli_config_content: t.Dict[str, t.Any] = json.load(reader)
+
+    # Extract config and map values
+    config: CliConfig
+    if 'repomaintain' in cli_config_content:
+        config = cli_config_content['repomaintain']
+    else:
+        config = {
+            'publish_mode': None,
+            'publish_tag_name': None,
+        }
+
+    # Set values
+    if publish_mode is not None:
+        config['publish_mode'] = publish_mode
+    if publish_tag_name is not None:
+        config['publish_tag_name'] = publish_tag_name
+
+    # Set or update cli config
+    cli_config_content.update({'repomaintain': config})
+
+    # Write changes to scope.json file.
+    with open(cli_config_file, 'w') as writer:
+        writer.write(json.dumps(cli_config_content, indent=2) + "\n")
 
 
 def echo(

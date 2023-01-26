@@ -1,5 +1,3 @@
 {
-  "scope": "test",
-  "initialized": false,
-  "cli_publish_tag": "monorepo"
+  "scope": "test"
 }
