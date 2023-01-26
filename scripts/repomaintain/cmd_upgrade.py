@@ -71,7 +71,7 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
     for component in components:
         # Remove backup of package.json file.
         pkg_json_bak_file = os.path.join(component['location'], "package.json.bak")
-        remove(pkg_json_bak_file + ".bak")
+        remove(pkg_json_bak_file)
 
         # Remove linked .npmrc file.
         unlink_npmrc_file(component)

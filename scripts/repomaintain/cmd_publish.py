@@ -511,7 +511,7 @@ def cleanup(components: t.List[LernaComponent]) -> None:
     for c in components:
         # Remove backup of package.json file (might be created for dry-run).
         pkg_json_bak_file = os.path.join(c['location'], "package.json.bak")
-        remove(pkg_json_bak_file + ".bak")
+        remove(pkg_json_bak_file)
 
         # Remove linked .npmrc file (might be created for GitHub push).
         unlink_npmrc_file(c)
