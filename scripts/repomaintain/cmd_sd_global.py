@@ -49,7 +49,7 @@ def cmd_update_pinned() -> bool:
     at least on Lerna managed component.
     """
     # Initialize repo object and search for Lerna components.
-    repo, root, components = cmd_helper(no_git=True)
+    repo, root, components = cmd_helper(no_git=False)
 
     # Try to connect to Confluence and load all pinned dependencies.
     pinned_deps = fetch_globally_pinned_dependencies(root)
@@ -94,5 +94,15 @@ def cmd_update_pinned() -> bool:
 
     # Try to connect to Confluence and load all pinned dependencies.
     update_globally_pinned_dependencies(repo, root, pinned_deps_in_use)
+
+    # Commit package.json files when changes have been enforced.
+    if repo.is_dirty():
+        index = repo.index
+        for component in components:
+            index.add(os.path.join(component['location'], "package.json"))
+
+        # Create a new commit.
+        index.commit("Update globally pinned dependencies")
+        echo("\nCreated a new commit.")
 
     return True
