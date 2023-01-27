@@ -14,7 +14,7 @@ def run(
         dep_exclude: t.Optional[str],
 ) -> bool:
     # Initialize repo object and search for Lerna components.
-    repo, root, components = cmd_helper(no_git=True)
+    repo, root, components = cmd_helper()
 
     # Fetch globally pinned dependencies. These packages have to be ignored in the upgrade process.
     pinned_deps = fetch_globally_pinned_dependencies(root)

@@ -1,14 +1,15 @@
 import functools
 import json
 import os.path
+import re
 import typing as t
 
 import git
 import semantic_version as semver
 
 from utils import (
-    LernaComponent, app_on_error, ask_user, cmd_helper, copy, echo, link_npmrc_file,
-    move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
+    LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy, echo,
+    link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
 
 # Type of single Lerna component version.
 ComponentVersion = t.TypedDict('ComponentVersion', {
@@ -24,7 +25,11 @@ InternalDependency = t.TypedDict('InternalDependency', {
 
 def run(no_git: bool) -> bool:
     # Initialize repo object and search for Lerna components.
-    repo, root, components = cmd_helper(no_git=no_git)
+    repo, root, components = cmd_helper()
+
+    # Stop processing when open changes in package.json files have been detected.
+    if not no_git:
+        check_open_changes(repo)
 
     # Register cleanup handler for error case. We want to undo the update call as much as possible
     # (node_modules changes persist however).
@@ -93,6 +98,21 @@ WARNING:
         commit_changes(repo, components)
 
     return True
+
+
+def check_open_changes(repo: git.Repo) -> None:
+    """ Checks if there are any open changes in package.json files. """
+    # Regex to extract the prefix of a semver (e.g. '~', '<=')
+    regex = re.compile(r'.*package\.json$')
+
+    changed_and_new_files = repo.index.diff(None) + repo.index.diff("HEAD")
+    for item in changed_and_new_files:
+        if regex.match(item.a_path):
+            raise PrintMessageError(
+                """ERROR:
+  Your index contains uncommitted changes in package.json files.
+  Please commit or stash them.
+""")
 
 
 def backup_package_files(components: t.List[LernaComponent]) -> None:

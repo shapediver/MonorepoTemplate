@@ -25,7 +25,11 @@ PublishableComponent = t.TypedDict('PublishableComponent', {
 
 def run(dry_run: bool, always_ask: bool) -> bool:
     # Initialize repo object and search for Lerna components.
-    repo, root, all_components = cmd_helper(no_git=dry_run)
+    repo, root, all_components = cmd_helper()
+
+    # Stop processing when open changes have been detected.
+    if not dry_run:
+        check_open_changes(repo)
 
     # Load cli config file.
     config = load_cli_config(root)
@@ -118,6 +122,16 @@ def run(dry_run: bool, always_ask: bool) -> bool:
     cleanup(all_components)
 
     return True
+
+
+def check_open_changes(repo: git.Repo) -> None:
+    """ Checks if the Git index has any open changes (except for untracked files). """
+    if repo.is_dirty():
+        raise PrintMessageError(
+            """ERROR:
+  Your index contains uncommitted changes.
+  Please commit or stash them.
+""")
 
 
 def ask_user_for_components_and_version(

@@ -471,12 +471,10 @@ def update_globally_pinned_dependencies(
     echo("\nThe repository list of the Confluence page has been updated successfully.")
 
 
-def cmd_helper(*, no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
+def cmd_helper() -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
     """
     Helper function to initialize a CLI command.
 
-    :param no_git: When `True` checks the dirty-state of the Git repository.
-    :raise PrintMessageError: When `no_git=True` and repository has open changes.
     :return: [0] Git repository object. [1] Absolute path to the repository's root. [2] A list of
     all Lerna managed components.
     """
@@ -484,14 +482,6 @@ def cmd_helper(*, no_git: bool) -> t.Tuple[git.Repo, str, t.List[LernaComponent]
 
     # The absolute path of the Git repository's root folder.
     root = repo.git.rev_parse("--show-toplevel")
-
-    # Stop processing when open changes have been detected.
-    if not no_git and repo.is_dirty():
-        raise PrintMessageError(
-            """ERROR:
-  Your index contains uncommitted changes.
-  Please commit or stash them.
-""")
 
     # Get list of all components that are managed by Lerna
     components = get_lerna_components(root)

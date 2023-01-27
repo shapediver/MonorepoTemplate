@@ -1,9 +1,13 @@
 import json
 import os
+import re
 import typing as t
 
-from utils import (cmd_helper, echo, fetch_globally_pinned_dependencies, git_repo,
-                   update_globally_pinned_dependencies)
+import git
+
+from utils import (
+    PrintMessageError, cmd_helper, echo, fetch_globally_pinned_dependencies, git_repo,
+    update_globally_pinned_dependencies)
 
 
 def run(cmd: t.Literal['list-pinned', 'update-pinned']) -> bool:
@@ -49,7 +53,10 @@ def cmd_update_pinned() -> bool:
     at least on Lerna managed component.
     """
     # Initialize repo object and search for Lerna components.
-    repo, root, components = cmd_helper(no_git=False)
+    repo, root, components = cmd_helper()
+
+    # Stop processing when open changes in package.json files have been detected.
+    check_open_changes(repo)
 
     # Try to connect to Confluence and load all pinned dependencies.
     pinned_deps = fetch_globally_pinned_dependencies(root)
@@ -106,3 +113,18 @@ def cmd_update_pinned() -> bool:
         echo("\nCreated a new commit.")
 
     return True
+
+
+def check_open_changes(repo: git.Repo) -> None:
+    """ Checks if there are any open changes in package.json files. """
+    # Regex to extract the prefix of a semver (e.g. '~', '<=')
+    regex = re.compile(r'.*package\.json$')
+
+    changed_and_new_files = repo.index.diff(None) + repo.index.diff("HEAD")
+    for item in changed_and_new_files:
+        if regex.match(item.a_path):
+            raise PrintMessageError(
+                """ERROR:
+  Your index contains uncommitted changes in package.json files.
+  Please commit or stash them.
+""")
