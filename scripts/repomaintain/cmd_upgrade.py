@@ -1,11 +1,11 @@
 import functools
-import os
 import shlex
 import typing as t
 
 from utils import (
     LernaComponent, app_on_error, cmd_helper, copy, echo, fetch_globally_pinned_dependencies,
-    git_repo, link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
+    git_repo, join_paths, link_npmrc_file, move, reinstall_dependencies, remove, run_process,
+    unlink_npmrc_file)
 
 
 def run_upgrade(
@@ -92,7 +92,7 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
     """ Creates backups of all component's package.json files. """
     for component in components:
         # Backup package.json file
-        package_json = os.path.join(component['location'], "package.json")
+        package_json = join_paths(component['location'], "package.json")
         copy(package_json, package_json + ".bak")
 
 
@@ -100,7 +100,7 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
     """ Removes package.json backups and linked .npmrc files. """
     for component in components:
         # Remove backup of package.json file.
-        pkg_json_bak_file = os.path.join(component['location'], "package.json.bak")
+        pkg_json_bak_file = join_paths(component['location'], "package.json.bak")
         remove(pkg_json_bak_file)
 
         # Remove linked .npmrc file.
@@ -111,7 +111,7 @@ def cleanup_on_error(components: t.List[LernaComponent]) -> None:
     """ Restores package.json backups and removes linked .npmrc files. """
     for component in components:
         # Restore backup of package.json file.
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
         move(pkg_json_file + ".bak", pkg_json_file)
 
         # Remove linked .npmrc file.

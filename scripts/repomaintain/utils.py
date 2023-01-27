@@ -5,6 +5,7 @@ import shlex
 import shutil
 import sys
 import typing as t
+from pathlib import Path
 from subprocess import DEVNULL, STDOUT, run
 
 import click
@@ -57,7 +58,7 @@ class PrintMessageError(Exception):
 
 def load_cli_config(root: str) -> CliConfig:
     """ Reads and parses the CLI configuration properties. """
-    cli_config_file = os.path.join(root, "scope.json")
+    cli_config_file = join_paths(root, "scope.json")
 
     # Open and parse scope.json file.
     with open(cli_config_file, 'r') as reader:
@@ -91,7 +92,7 @@ def update_cli_config(
         publish_tag_name: t.Optional[str] = None,
 ) -> None:
     """ Overrides all CLI config properties that are specified and not `None`. """
-    cli_config_file = os.path.join(root, "scope.json")
+    cli_config_file = join_paths(root, "scope.json")
 
     # Open and parse scope.json file.
     with open(cli_config_file, 'r') as reader:
@@ -228,6 +229,24 @@ def get_lerna_components(root: str) -> t.List[LernaComponent]:
     return json.loads(res)
 
 
+def join_paths(*args) -> str:
+    """
+    Helper function to join paths (cross-platforms).
+
+    Unfortunately, `os.path.join` just appends paths without normalizing the separator, which can
+    lead to a mixture of `\\` and `/` separators within a single path. Additionally, some modules
+    like GitPython cause problems on Windows when the '/'-separator is used. To solve these
+    problems, this helper function normalizes separators depending on the operating system after the
+    paths have been joined.
+    """
+    joined = os.path.join(*args)
+    if sys.platform == 'win32' or sys.platform == 'cygwin':
+        return joined.replace("/", "\\")
+    else:
+        # This should not be necessary but just to make sure.
+        return joined.replace("\\", "/")
+
+
 def copy(src: str, dst: str, *, must_exist: bool = False) -> None:
     """
     Copies the given file or symlink to the specified location; overrides if it already exists.
@@ -295,10 +314,10 @@ def link_npmrc_file(
     :param must_exist: Stops when set to `true` and the file was not found.
     :raise FileNotFoundError: When the file was not found and `must_exist=True`.
     """
-    npmrc = os.path.join(root, ".npmrc")
+    npmrc = join_paths(root, ".npmrc")
     if os.path.exists(npmrc):
         for component in [c for c in components if c['name'] != "root"]:
-            copy(npmrc, os.path.join(component['location'], ".npmrc"))
+            copy(npmrc, join_paths(component['location'], ".npmrc"))
     elif must_exist:
         raise PrintMessageError(f"\nERROR:\n  Could not link {npmrc}: File does not exist.")
     else:
@@ -309,7 +328,7 @@ def unlink_npmrc_file(component: LernaComponent) -> None:
     """ Removes a linked .npmrc file if found. """
     if component['name'] != "root":
         # Remove linked .npmrc file.
-        npmrc_file = os.path.join(component['location'], ".npmrc")
+        npmrc_file = join_paths(component['location'], ".npmrc")
         remove(npmrc_file)
 
 
@@ -331,7 +350,7 @@ def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
     version of the page does not match.
     """
     # Check existence of configuration file.
-    atlassianrc = os.path.join(root, ".atlassianrc")
+    atlassianrc = join_paths(root, ".atlassianrc")
     if not os.path.exists(atlassianrc):
         raise PrintMessageError(f"\nERROR:\n  Could not read {atlassianrc}: File does not exist.")
 
@@ -480,7 +499,7 @@ def cmd_helper() -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
     repo = git_repo()
 
     # The absolute path of the Git repository's root folder.
-    root = repo.git.rev_parse("--show-toplevel")
+    root: str = repo.git.rev_parse("--show-toplevel")
 
     # Get list of all components that are managed by Lerna
     components = get_lerna_components(root)
@@ -493,5 +512,11 @@ def cmd_helper() -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
         'private': True,
         'location': root,
     })
+
+    # Git-Bash on Windows supports both separators: '\\' and '/'. However, when passing a path as an
+    # argument to a shell script, the '\\'-separator has to be escaped again. To avoid this, we just
+    # use the '/'-separator on all systems.
+    for component in components:
+        component['location'] = component['location'].replace("\\", "/")
 
     return repo, root, components

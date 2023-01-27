@@ -1,5 +1,4 @@
 import json
-import os
 import re
 import typing as t
 
@@ -7,7 +6,7 @@ import git
 
 from utils import (
     PrintMessageError, cmd_helper, echo, fetch_globally_pinned_dependencies, git_repo,
-    update_globally_pinned_dependencies)
+    join_paths, update_globally_pinned_dependencies)
 
 
 def run(cmd: t.Literal['list-pinned', 'update-pinned']) -> bool:
@@ -76,7 +75,7 @@ def cmd_update_pinned() -> bool:
 
     # Check all components for globally pinned packages.
     for component in components:
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
 
         # Open and parse package.json file.
         with open(pkg_json_file, 'r') as reader:
@@ -106,7 +105,7 @@ def cmd_update_pinned() -> bool:
     if repo.is_dirty():
         index = repo.index
         for component in components:
-            index.add(os.path.join(component['location'], "package.json"))
+            index.add(join_paths(component['location'], "package.json"))
 
         # Create a new commit.
         if len(repo.index.diff("HEAD")) > 0:

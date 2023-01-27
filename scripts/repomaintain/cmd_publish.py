@@ -1,6 +1,5 @@
 import functools
 import json
-import os
 import re
 import shlex
 import typing as t
@@ -10,7 +9,7 @@ import semantic_version as semver
 
 from utils import (
     CliConfig, LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy,
-    echo, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
+    echo, join_paths, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
     update_cli_config)
 
 REGISTRY_GITHUB = "https://npm.pkg.github.com/"
@@ -55,7 +54,7 @@ def run(dry_run: bool, always_ask: bool) -> bool:
     # Backup package.json files to undo the version change in dry-run mode.
     if dry_run:
         for component in all_components:
-            package_json = os.path.join(component['location'], "package.json")
+            package_json = join_paths(component['location'], "package.json")
             copy(package_json, package_json + ".bak")
 
     # Update component versions.
@@ -115,7 +114,7 @@ def run(dry_run: bool, always_ask: bool) -> bool:
     # Restore package.json files to undo to version change in dry-run mode.
     if dry_run:
         for component in all_components:
-            package_json = os.path.join(component['location'], "package.json")
+            package_json = join_paths(component['location'], "package.json")
             copy(package_json + ".bak", package_json)
 
     # Remove auth files
@@ -349,10 +348,10 @@ def ask_user_and_prepare_commit_and_tags(
     # Add all package.json changes to the Git index.
     index = repo.index
     for component in all_components:
-        index.add(os.path.join(component['location'], "package.json"))
+        index.add(join_paths(component['location'], "package.json"))
 
     # The CLI config might have been changed, so we add it too.
-    index.add(os.path.join(root, "scope.json"))
+    index.add(join_paths(root, "scope.json"))
 
     # Create a new commit.
     index.commit("Publish")
@@ -478,7 +477,7 @@ def update_version(
         pkg_json_dep_ref[name] = new_version
 
     for component in all_components:
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
 
         # Open and parse package.json file.
         with open(pkg_json_file, 'r') as reader:
@@ -527,7 +526,7 @@ def cleanup(components: t.List[LernaComponent]) -> None:
     """ Removes backup and linked .npmrc files in all components. """
     for c in components:
         # Remove backup of package.json file (might be created for dry-run).
-        pkg_json_bak_file = os.path.join(c['location'], "package.json.bak")
+        pkg_json_bak_file = join_paths(c['location'], "package.json.bak")
         remove(pkg_json_bak_file)
 
         # Remove linked .npmrc file (might be created for GitHub push).

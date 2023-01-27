@@ -9,7 +9,8 @@ import semantic_version as semver
 
 from utils import (
     LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy, echo,
-    link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
+    join_paths, link_npmrc_file, move, reinstall_dependencies, remove, run_process,
+    unlink_npmrc_file)
 
 # Type of single Lerna component version.
 ComponentVersion = t.TypedDict('ComponentVersion', {
@@ -46,7 +47,7 @@ def run(no_git: bool) -> bool:
     for component in components:
         echo(f"\nUpdating and auditing dependencies of component {component['name']}:")
 
-        if os.path.exists(os.path.join(component['location'], "node_modules")):
+        if os.path.exists(join_paths(component['location'], "node_modules")):
             try:
                 # Shows general information about newer versions if possible.
                 run_process("npm outdated", component['location'])
@@ -119,11 +120,11 @@ def backup_package_files(components: t.List[LernaComponent]) -> None:
     """ Creates backups of all component's package and lock files. """
     for component in components:
         # Backup package.json file
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
         copy(pkg_json_file, pkg_json_file + ".bak", must_exist=True)
 
         # Backup package-lock.json file
-        pkg_lock_file = os.path.join(component['location'], "package-lock.json")
+        pkg_lock_file = join_paths(component['location'], "package-lock.json")
         copy(pkg_lock_file, pkg_lock_file + ".bak")
 
 
@@ -168,7 +169,7 @@ Component {internal_dependency['name']}:
             del pkg_json_dep_ref[name]
 
     for component in components:
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
 
         # Open and parse package.json file.
         with open(pkg_json_file, 'r') as reader:
@@ -196,8 +197,8 @@ def commit_changes(repo: git.Repo, components: t.List[LernaComponent]) -> None:
     index = repo.index
 
     for component in components:
-        index.add(os.path.join(component['location'], "package.json"))
-        index.add(os.path.join(component['location'], "package-lock.json"))
+        index.add(join_paths(component['location'], "package.json"))
+        index.add(join_paths(component['location'], "package-lock.json"))
 
     if len(repo.index.diff("HEAD")) > 0:
         index.commit("Update dependencies")
@@ -209,8 +210,8 @@ def commit_changes(repo: git.Repo, components: t.List[LernaComponent]) -> None:
 def cleanup_on_success(components: t.List[LernaComponent]) -> None:
     """ Restores the removed references of internal dependencies. """
     for component in components:
-        pkg_json_file = os.path.join(component['location'], "package.json")
-        pkg_lock_file = os.path.join(component['location'], "package-lock.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
+        pkg_lock_file = join_paths(component['location'], "package-lock.json")
 
         # Open and parse package.json file.
         with open(pkg_json_file, 'r') as reader:
@@ -245,11 +246,11 @@ def cleanup_on_error(components: t.List[LernaComponent]) -> None:
     """ Restores package.json backups and removes linked .npmrc files. """
     for component in components:
         # Restore backup of package.json file.
-        pkg_json_file = os.path.join(component['location'], "package.json")
+        pkg_json_file = join_paths(component['location'], "package.json")
         move(pkg_json_file + ".bak", pkg_json_file)
 
         # Restore backup of package-lock.json file.
-        pkg_lock_file = os.path.join(component['location'], "package-lock.json")
+        pkg_lock_file = join_paths(component['location'], "package-lock.json")
         move(pkg_lock_file + ".bak", pkg_lock_file)
 
         # Remove linked .npmrc file.
