@@ -99,14 +99,8 @@ def update_cli_config(
         cli_config_content: t.Dict[str, t.Any] = json.load(reader)
 
     # Extract config and map values
-    config: CliConfig
-    if 'repomaintain' in cli_config_content:
-        config = cli_config_content['repomaintain']
-    else:
-        config = {
-            'publish_mode': None,
-            'publish_tag_name': None,
-        }
+    config: CliConfig = cli_config_content['repomaintain'] if 'repomaintain' in cli_config_content \
+        else {}
 
     # Set values
     if publish_mode is not None:

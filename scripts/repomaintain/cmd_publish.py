@@ -71,7 +71,11 @@ def run(dry_run: bool, always_ask: bool) -> bool:
         run_process(f"npm run pre-publish {args_str}", c['component']['location'])
 
         # Prepare publish command
-        cmd = "npm publish" + (" --dry-run" if dry_run else "") + " --registry "
+        cmd = "npm publish" + \
+              (" --dry-run" if dry_run else "") + \
+              " --scope @shapediver" \
+              " --access public" \
+              " --registry "
 
         # Publish to GitHub.
         if publish_to_github:
@@ -93,6 +97,12 @@ def run(dry_run: bool, always_ask: bool) -> bool:
 
         # Run post-publish
         run_process(f"npm run post-publish {args_str}", c['component']['location'])
+
+    # Update the package-lock files to apply the changed component versions.
+    # Skip this step in dry-run since NPM will not find the new pacakge versions throws instead.
+    if not dry_run:
+        for component in all_components:
+            run_process("npm install --package-json-only --no-fund --no-audit", component['location'])
 
     # Create Git commit and tags
     to_push: t.Union[None, t.List[str]] = None
@@ -345,20 +355,15 @@ def ask_user_and_prepare_commit_and_tags(
         always_ask: bool,
 ) -> t.List[str]:
     """ Prepares the Git commit and tag(s). """
-    # Add all package.json changes to the Git index.
     index = repo.index
+
+    # Add all package.json changes to the Git index.
     for component in all_components:
         index.add(join_paths(component['location'], "package.json"))
+        index.add(join_paths(component['location'], "package-lock.json"))
 
-    # The CLI config might have been changed, so we add it too.
-    index.add(join_paths(root, "scope.json"))
-
-    # Create a new commit.
-    index.commit("Publish")
-    echo("\nCreated a new commit.")
-
-    # Add the current branch (contains the publish-commits).
-    to_push = [repo.active_branch.path]
+    # List of all Git tags that should be created.
+    tag_names = []
 
     # We want to enforce the following standard:
     #   * One Git tag for repositories that publish all components with the same version. The name
@@ -370,8 +375,7 @@ def ask_user_and_prepare_commit_and_tags(
 
         if (not always_ask and config['publish_tag_name'] is not None and
                 len(config['publish_tag_name']) > 0):
-            tag = repo.create_tag(f"{config['publish_tag_name']}@{version}")
-            to_push.append(tag.path)
+            tag_names.append(f"{config['publish_tag_name']}@{version}")
         else:
             # Ask the user for a custom tag name and store the answer in cli config.
             echo(f"A single Git tag will be created for all components ('<name>@{version}').")
@@ -385,8 +389,7 @@ def ask_user_and_prepare_commit_and_tags(
                 }])
                 tag_name = str(answers['tag_name']).strip().replace(' ', '_')
 
-            tag = repo.create_tag(f"{tag_name}@{version}")
-            to_push.append(tag.path)
+            tag_names.append(f"{tag_name}@{version}")
 
             config['publish_tag_name'] = tag_name
             update_cli_config(root, publish_tag_name=tag_name)
@@ -394,10 +397,19 @@ def ask_user_and_prepare_commit_and_tags(
         # Create one git tag for each published component.
         for c in published_components:
             name, version = c['component']['name'], c['new_version']
-            tag = repo.create_tag(f"{name}@{version}")
-            to_push.append(tag.path)
+            tag_names.append(f"{name}@{version}")
 
-    return to_push
+    # The CLI config might have been changed, so we add it too.
+    index.add(join_paths(root, "scope.json"))
+
+    # Create a new commit.
+    index.commit("Publish")
+    echo("\nCreated a new commit.")
+
+    # Create Git tags and return the following list of all Git references that should be pushed:
+    #   * The current branch (contains the publish-commits).
+    #   * All created Git tags.
+    return [repo.active_branch.path] + [repo.create_tag(name).path for name in tag_names]
 
 
 def ask_user_and_push_to_origin(repo: git.Repo, to_push: t.List[str]) -> None:
