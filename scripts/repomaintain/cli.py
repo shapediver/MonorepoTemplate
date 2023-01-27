@@ -7,7 +7,7 @@ import click
 from cmd_publish import run as run_publish
 from cmd_sd_global import run as run_sd_global
 from cmd_update import run as run_update
-from cmd_upgrade import run as run_upgrade
+from cmd_upgrade import run_upgrade, run_apply as run_apply_upgrade
 from utils import PrintMessageError, app_on_error, app_on_success, echo
 
 
@@ -89,9 +89,24 @@ def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     `upgrade -t major -f X` upgrades dependency X from "^16.0.4" to "^18.2.0" in package.json.
 
     THIS PROCESS DOES NOT AUDIT THE NEW DEPENDENCIES OR UPDATES THE LOCK FILE!
-    Run the `update` command to finalize the changes.
+    Run the `apply-upgrade` command to finalize the changes.
     """
     cmd_wrapper(run_upgrade, target.lower(), dep_filter, dep_exclude)
+
+
+@cli.command()
+def apply_upgrade() -> None:
+    """
+    Finalizes the `upgrade` command.
+
+    This command should be called when the `upgrade` command was executed and after the user made
+    sure that the new dependency versions do not break the application(s).
+
+    Finalizes the version upgrade process by auditing the dependencies, updating the
+    package-lock.json file of Lerna managed components and committing all open changes to Git.
+    """
+    cmd_wrapper(run_update, True)
+    cmd_wrapper(run_apply_upgrade)
 
 
 @cli.command()

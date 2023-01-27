@@ -5,10 +5,10 @@ import typing as t
 
 from utils import (
     LernaComponent, app_on_error, cmd_helper, copy, echo, fetch_globally_pinned_dependencies,
-    link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
+    git_repo, link_npmrc_file, move, reinstall_dependencies, remove, run_process, unlink_npmrc_file)
 
 
-def run(
+def run_upgrade(
         target: t.Literal['major', 'minor', 'patch'],
         dep_filter: str,
         dep_exclude: t.Optional[str],
@@ -55,8 +55,35 @@ def run(
     echo("\nInstalling upgraded dependencies:")
     reinstall_dependencies(root)
 
+    # Log information about next steps.
+    echo(
+        """
+Dependency upgrade successfully applied.
+
+Please complete the following steps next:
+  1. Test the application(s) and make sure that the new versions do not cause problems. When you
+    encounter issues and cannot fix them, downgrade the version of the problematic dependencies.
+    (Do not forget to run `npm run bootstrap` after downgrading versions to apply the changes).
+  
+  2. Persist your changes by running `npm run apply-upgrade`.
+""", 'wrn')
+
     return True
 
+
+def run_apply():
+    repo = git_repo()
+    index = repo.index
+
+    # The general idea is, that the user runs the upgrade command before testing the new dependency
+    # versions via unit test or whatever. This might result in file changes. Therefore, we have to
+    # add all open changes and new files to the index when the user wants to persist the upgrade.
+    changed_and_new_files = repo.index.diff(None) + repo.index.diff("HEAD")
+    for item in changed_and_new_files:
+        index.add(item.a_path)
+
+    index.commit("Upgrade dependencies")
+    echo("\nCreated a new commit.")
 
 def backup_package_files(components: t.List[LernaComponent]) -> None:
     """ Creates backups of all component's package.json files. """
