@@ -351,6 +351,9 @@ def ask_user_and_prepare_commit_and_tags(
     for component in all_components:
         index.add(os.path.join(component['location'], "package.json"))
 
+    # The CLI config might have been changed, so we add it too.
+    index.add(os.path.join(root, "scope.json"))
+
     # Create a new commit.
     index.commit("Publish")
     echo("\nCreated a new commit.")
