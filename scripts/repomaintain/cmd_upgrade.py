@@ -42,11 +42,7 @@ def run_upgrade(
 
     for component in components:
         echo(f"\nUpgrading dependencies of component {component['name']}:")
-
-        try:
-            run_process(cmd, cwd=component['location'])
-        except RuntimeError as e:
-            print(e)
+        run_process(cmd, cwd=component['location'])
 
     # Cleanup - We have to remove the created backups of package.json files.
     cleanup_on_success(components)

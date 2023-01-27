@@ -239,7 +239,6 @@ def copy(src: str, dst: str, *, must_exist: bool = False) -> None:
     """
     # Stop when file was not found
     if not must_exist and not os.path.exists(src):
-        print(f"COPY NOPE: {must_exist}, {os.path.exists(src)}")
         return
 
     if os.path.islink(src):
