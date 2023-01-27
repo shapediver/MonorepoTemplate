@@ -78,8 +78,15 @@ def run_apply():
     for item in changed_and_new_files:
         index.add(item.a_path)
 
-    index.commit("Upgrade dependencies")
-    echo("\nCreated a new commit.")
+    # Create a new commit.
+    if len(repo.index.diff("HEAD")) > 0:
+        index.commit("Upgrade dependencies")
+        echo("\nCreated a new commit.")
+    else:
+        echo("\nNo upgrades found.")
+
+    return True
+
 
 def backup_package_files(components: t.List[LernaComponent]) -> None:
     """ Creates backups of all component's package.json files. """

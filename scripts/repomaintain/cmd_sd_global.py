@@ -109,8 +109,9 @@ def cmd_update_pinned() -> bool:
             index.add(os.path.join(component['location'], "package.json"))
 
         # Create a new commit.
-        index.commit("Update globally pinned dependencies")
-        echo("\nCreated a new commit.")
+        if len(repo.index.diff("HEAD")) > 0:
+            index.commit("Update globally pinned dependencies")
+            echo("\nCreated a new commit.")
 
     return True
 

@@ -199,8 +199,11 @@ def commit_changes(repo: git.Repo, components: t.List[LernaComponent]) -> None:
         index.add(os.path.join(component['location'], "package.json"))
         index.add(os.path.join(component['location'], "package-lock.json"))
 
-    index.commit("Update dependencies")
-    echo("\nCreated a new commit.")
+    if len(repo.index.diff("HEAD")) > 0:
+        index.commit("Update dependencies")
+        echo("\nCreated a new commit.")
+    else:
+        echo("\nNo updates found.")
 
 
 def cleanup_on_success(components: t.List[LernaComponent]) -> None:
