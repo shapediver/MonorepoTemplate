@@ -8,7 +8,9 @@
 #
 # The following stringified arguments are available:
 #   [1] dry-run {boolean}:
-#       Is `True` when the CLI process is running with the `--dry-run` flag; otherwise `False`.
+#       Is `True` when the user don't want to actually publish anything. Instead this script should
+#       only report what would have happened for testing and development purposes.
+#       Otherwise, this property is set to `False`.
 #   [2] name {string}:
 #       The name of the the component that is about to get published.
 #   [3] version {string}:

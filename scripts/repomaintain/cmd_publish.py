@@ -22,12 +22,12 @@ PublishableComponent = t.TypedDict('PublishableComponent', {
 })
 
 
-def run(dry_run: bool, always_ask: bool) -> bool:
+def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
     # Initialize repo object and search for Lerna components.
     repo, root, all_components = cmd_helper()
 
     # Stop processing when open changes have been detected.
-    if not dry_run:
+    if not no_git:
         check_open_changes(repo)
 
     # Load cli config file.
@@ -50,12 +50,6 @@ def run(dry_run: bool, always_ask: bool) -> bool:
 
     # Run GLOBAL pre-publish.
     run_process(f"npm run pre-publish-global {global_args_str}", root)
-
-    # Backup package.json files to undo the version change in dry-run mode.
-    if dry_run:
-        for component in all_components:
-            package_json = join_paths(component['location'], "package.json")
-            copy(package_json, package_json + ".bak")
 
     # Update component versions.
     update_version(all_components, publishable_components)
@@ -98,15 +92,17 @@ def run(dry_run: bool, always_ask: bool) -> bool:
         # Run post-publish
         run_process(f"npm run post-publish {args_str}", c['component']['location'])
 
-    # Update the package-lock files to apply the changed component versions.
-    # Skip this step in dry-run since NPM will not find the new pacakge versions throws instead.
+    # Update the package-lock files to apply the changed component versions. Skip this step in
+    # dry-run mode since NPM will not find the new package versions, resulting in an error.
     if not dry_run:
         for component in all_components:
             run_process("npm install --package-json-only --no-fund --no-audit", component['location'])
+    else:
+        echo("\nSkipping update of package-lock.json files in dry-run mode.", 'wrn')
 
     # Create Git commit and tags
-    to_push: t.Union[None, t.List[str]] = None
-    if not dry_run:
+    to_push: t.Optional[t.List[str]] = None
+    if not no_git:
         to_push = ask_user_and_prepare_commit_and_tags(
             root, repo, config, all_components, publishable_components, always_ask)
     else:
@@ -117,15 +113,9 @@ def run(dry_run: bool, always_ask: bool) -> bool:
 
     # Push changes to Git
     if to_push is not None:
-        ask_user_and_push_to_origin(repo, to_push)
+        ask_user_and_push_to_origin(dry_run, repo, to_push)
     else:
         echo("\nSkipping Git push.")
-
-    # Restore package.json files to undo to version change in dry-run mode.
-    if dry_run:
-        for component in all_components:
-            package_json = join_paths(component['location'], "package.json")
-            copy(package_json + ".bak", package_json)
 
     # Remove auth files
     cleanup(all_components)
@@ -412,7 +402,7 @@ def ask_user_and_prepare_commit_and_tags(
     return [repo.active_branch.path] + [repo.create_tag(name).path for name in tag_names]
 
 
-def ask_user_and_push_to_origin(repo: git.Repo, to_push: t.List[str]) -> None:
+def ask_user_and_push_to_origin(dry_run: bool, repo: git.Repo, to_push: t.List[str]) -> None:
     """ Pushes the given references to Git remote 'origin' if the users confirm. """
     # Log all references that are going to be pushed.
     msg = "\nThe following Git references are ready to be pushed:\n"
@@ -420,20 +410,23 @@ def ask_user_and_push_to_origin(repo: git.Repo, to_push: t.List[str]) -> None:
         msg += f"\n  * {ref}"
     echo(msg)
 
-    # Ask user if changes should be pushed
-    print()
-    answers = ask_user([{
-        'type': "confirm",
-        'name': "proceed",
-        'message': "Push to Git 'origin'?",
-        'default': True,
-    }])
-    if not answers['proceed']:
-        echo("Cancelled by User - no references got pushed to Git.")
-        return
+    if not dry_run:
+        # Ask user if changes should be pushed
+        print()
+        answers = ask_user([{
+            'type': "confirm",
+            'name': "proceed",
+            'message': "Push to Git 'origin'?",
+            'default': True,
+        }])
+        if not answers['proceed']:
+            echo("Cancelled by User - no references got pushed to Git.")
+            return
 
-    # Push to origin
-    repo.remote().push(to_push).raise_if_error()
+        # Push to origin
+        repo.remote().push(to_push).raise_if_error()
+    else:
+        echo("\nSkipping Git push in dry-run mode.", 'wrn')
 
 
 def update_version(
