@@ -9,18 +9,18 @@ You can either add packages and libraries in the `packages` folder or in the `li
 
 ## 1. Setup
 ### Node / NPM
-You need to install a specific version of node (14.5.0) and npm (6.14.5). You can do this in any way you want to, but in the following steps we will explain how to do this with nvm.
+You need to install a specific version of node (16) and npm (8). You can do this in any way you want to, but in the following steps we will explain how to do this with nvm.
 
 First of all, download nvm ([windows](https://github.com/coreybutler/nvm-windows)/[unix](https://github.com/nvm-sh/nvm)/[mac](https://github.com/nvm-sh/nvm)).
 Once installed, just use the commands
 
-`nvm install 14.5.0`
+`nvm install 16`
 
 and
 
-`nvm use 14.5.0`
+`nvm use 16`
 
-This will install node (14.5.0) and the corresponding npm version (6.14.5).
+This will install the latest node v16 and the corresponding npm version.
 
 ### GIT
 Make sure to have GIT installed on your system.
@@ -28,9 +28,48 @@ Set the `script-shell` of npm to bash via
 
 `npm config set script-shell "PATH\TO\Git\bin\bash.exe"`
 
+### Python
+
+You need to install a specific version of Python (3.9.x, reaches end of support in 2025-10).
+
+#### Windows
+
+Download the latest 3.9-version of [Python](https://www.python.org/downloads/) and don't forget to select the box "Add Python 3.9 to PATH".\
+_Note: Not all versions have been ported to Windows, so pick the latest version that has a **Windows installer** file._
+
+Once installed disable the Windows alias feature for Python:
+1. Go to -> "Start" and type "Manage App Execution Aliases".
+2. Disable all "Python" aliases.
+
+#### Unix &amp; Mac
+
+We use [pyenv](https://github.com/pyenv/pyenv) to install and manage multiple Python versions (similar to _nvm_ that we use for Node.js).
+Once installed run the following commands:
+
+```
+# Install the latest patch version of Python
+pyenv install -v 3.9
+
+# Set the global default Python executable for the current user (protects your "System Python")
+pyenv global 3.9
+```
+
+_Note_:\
+Watch out for compilation errors in submodules!
+In this case, the last log lines contain a **ModuleNotFoundError** message (warnings can be ignored though).
+This usually means that your system is missing some dependencies.
+In this case do the following:
+1. Install the missing dependencies. Google is your friend here :)
+2. Uninstall the Python version you just installed: `pyenv uninstall <python_version>`
+3. Install Python again: `pyenv install -v 3.9`
+4. Check for module errors; repeat if necessary.
+
 ### Installing
 
-Just call `npm run init`
+Just call `npm run init` in:
+
+* the Unix shell of your choice or
+* the **Git Bash** (MinGW) - PowerShell is not supported!
 
 ## 2. Creating Packages and Libraries
 
@@ -42,7 +81,7 @@ Your package name will be `@shapediver/SCOPE.NAME`. Where the scope is defined i
 
 One great feature of `lerna` is bootstrapping. As we have multiple packages, the either rely on each other or have the same dependencies, installing the dependencies per package doesn't make sense. Also, bootstrapping checks for circular dependencies, which makes our life that much easier.
 
-Therefore there are two scripts (one for normal dependencies, one for devDependencies) that use `lerna` and will make your life easier. I will just explain the script for normal dependencies, but the script for devDependencies works just the same. (just replace `add-dependency` with `add-devDependency` in the examples below)
+Therefore, there are two scripts (one for normal dependencies, one for devDependencies) that use `lerna` and will make your life easier. I will just explain the script for normal dependencies, but the script for devDependencies works just the same. (just replace `add-dependency` with `add-devDependency` in the examples below)
 
 ### Example 1 - adding an external dependency
 
@@ -56,6 +95,23 @@ In case you want `three` in all packages and libs you can call `npm run add-depe
 
 Now I want to add `a_package` to `another_package` (both are part of this repository).
 This works just similarly with `npm run add-dependency @shapediver/test.a_package @shapediver/test.another_package`.
+
+## Managing dependencies
+
+Create an OAuth access token for Confluence:
+1. Open the [ShapeDiver Atlassian board](https://shapediver.atlassian.net) and make sure that you are logged in.
+2. Click your _user icon_ in the upper right corner and select "_Manage account_".
+3. From there select the "_Security_" sub-page and click the link "_Create and manage API tokens_".
+4. Create a new API token with whatever name you like. 
+
+Create on the root of this repository a `.atlassianrc` file with the following content.
+```
+{
+    "username": "EMAIL",
+    "api_token": "TOKEN"
+}
+```
+Replace `TOKEN` with the access token that you just created, and replace `EMAIL` with your ShapeDiver email address.
 
 ## 4. Building
 

@@ -1,9 +1,23 @@
-#!/bin/bash
-VERSION=$(npm -v)
-if [ $VERSION = '6.14.5' ]
-then
-    exit 0
-else
-    echo 'You need to switch to a different version (6.14.5, node 14.5.0) of npm to continue.'
-    exit 1
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# We try to use the same Node.js (LTS) and NPM versions for all TypeScript ShapeDiver projects.
+target_node_version="v16"
+target_npm_version="8"
+
+node_version=$(node -v | cut -d. -f1)
+npm_version=$(npm -v | cut -d. -f1)
+
+# Check Node.js
+if [ "${node_version}" != "${target_node_version}" ]; then
+  echo "Invalid Node.js version: Detected major version ${node_version} but requires ${target_node_version}." >&2
+  exit 1
+fi
+
+# Check NPM
+if [ "${npm_version}" != "${target_npm_version}" ]; then
+  echo "Invalid NPM version: Detected major version ${npm_version} but requires version ${target_npm_version}." >&2
+  exit 1
 fi

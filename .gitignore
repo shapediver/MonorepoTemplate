@@ -1,6 +1,18 @@
+# TypeScript/JavaScript
 node_modules
 dist
 dist-dev
 dist-prod
 lerna-debug.log
 .npmrc
+
+# Python
+.venv/
+pip-log.txt
+__pycache__/
+
+# Miscellaneous
+.atlassianrc
+
+# JetBrains products are ignored by default - remove where needed
+.idea/
