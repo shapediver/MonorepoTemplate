@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "npm run check-npm-version && lerna bootstrap",
-    "clean": "lerna clean --yes",
+    "clean": "lerna clean --yes && lerna exec -- rm -rf ./dist",
     "reset": "npm run clean && rm -r ./node_modules ; rm -r ./.venv ; :",
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
@@ -19,7 +19,8 @@
     "init": "bash ./scripts/init.sh",
     "test": "npm run check-npm-version && lerna run test",
     "build": "npm run check-npm-version && lerna run build",
-    "build-dep": "lerna run build-dep"
+    "build-dep": "lerna run build-dep",
+    "downstream": "bash ./scripts/downstream.sh"
   },
   "devDependencies": {
     "@types/jest": "~27.4.1",

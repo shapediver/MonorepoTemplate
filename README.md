@@ -208,12 +208,7 @@ Afterwards, just call `npm run publish` and follow the prompts.
 Git is pretty awesome and allows you to get updates, that have been made to the [Monorepo-Template](https://github.com/shapediver/MonorepoTemplate), even after you have created your own repository.
 This is very useful, since new tools that make your live as a developer easier, as well as improved company internal standards, are added to the Monorepo on a regular basis.
 
-To downstream changes from the Monorepo Template, run the following command:
-```bash
-git pull --log --allow-unrelated-histories --no-ff git@github.com:shapediver/MonorepoTemplate.git
-```
-
-Afterwards, resolve conflicts if there are any and push the changes.
+To downstream changes from the Monorepo Template, simply run `npm run downstream` and follow the prompts.
 
 
 ## 9. Example
