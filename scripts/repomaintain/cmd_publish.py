@@ -8,8 +8,8 @@ import git
 import semantic_version as semver
 
 from utils import (
-    CliConfig, LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, copy,
-    echo, join_paths, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
+    CliConfig, LernaComponent, PrintMessageError, app_on_error, ask_user, cmd_helper, echo,
+    join_paths, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
     update_cli_config)
 
 REGISTRY_GITHUB = "https://npm.pkg.github.com/"
@@ -19,6 +19,12 @@ REGISTRY_NPM = "https://registry.npmjs.org/"
 PublishableComponent = t.TypedDict('PublishableComponent', {
     'component': LernaComponent,
     'new_version': str,
+})
+
+# Type of single registry.
+Registry = t.TypedDict('Registry', {
+    'name': t.Literal['github', 'npm'],
+    'url': str,
 })
 
 
@@ -43,13 +49,13 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
 
     # Ask user to which registries the selected components should be published to and make sure that
     # the user is already logged in for all selected registries.
-    publish_to_github, publish_to_npm = ask_user_for_registry(root)
+    registries = ask_user_for_registry(root)
 
     # Register cleanup handler for error case. However, we cannot really do much here.
     app_on_error.append(functools.partial(cleanup, all_components))
 
     # Build argument string for global pre-/post-publish scripts.
-    global_args = [dry_run, json.dumps(publishable_components)]
+    global_args = [dry_run, no_git, json.dumps(publishable_components)]
     global_args_str = " ".join([shlex.quote(str(arg)) for arg in global_args])
 
     # Run GLOBAL pre-publish.
@@ -62,7 +68,7 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
         echo(f"\nPublishing component {c['component']['name']}:")
 
         # Build argument string for pre-/post-publish scripts.
-        args = [dry_run, c['component']['name'], c['new_version']]
+        args = [dry_run, no_git, c['component']['name'], c['new_version']]
         args_str = " ".join(shlex.quote(str(arg)) for arg in args)
 
         # Run pre-publish
@@ -76,7 +82,7 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
               " --registry "
 
         # Publish to GitHub.
-        if publish_to_github:
+        if any(r['name'] == "github" for r in registries):
             echo("Publishing to GitHub:")
 
             # Authorization is done via an .npmrc file -> link from root when found.
@@ -85,7 +91,7 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
             run_process(cmd + REGISTRY_GITHUB, c['component']['location'])
 
         # Publish to NPM.
-        if publish_to_npm:
+        if any(r['name'] == "npm" for r in registries):
             echo("Publishing to NPM:")
 
             # Authorization is done via NPM CLI login -> remove .npmrc file when found.
@@ -300,7 +306,7 @@ ERROR:
     return res
 
 
-def ask_user_for_registry(root: str) -> t.Tuple[bool, bool]:
+def ask_user_for_registry(root: str) -> t.List[Registry]:
     """
     Asks the user which target registries should be used for publishing.
 
@@ -322,22 +328,36 @@ def ask_user_for_registry(root: str) -> t.Tuple[bool, bool]:
         }
     ])
 
+    registries: t.List[Registry] = []
+
+    if answers['github']:
+        registries.append({
+            'name': 'github',
+            'url': REGISTRY_GITHUB
+        })
+
+    if answers['npm']:
+        # Make sure that the user is logged in.
+        if answers['npm']:
+            try:
+                run_process(f"npm whoami --registry {REGISTRY_NPM}", root, show_output=False)
+            except RuntimeError:
+                raise PrintMessageError(f"""
+        ERROR:
+          You are not logged in to your NPM account.
+          Run 'npm login --registry {REGISTRY_NPM}' and use your ShapeDiver account!
+        """)
+
+        registries.append({
+            'name': 'npm',
+            'url': REGISTRY_NPM
+        })
+
     # At least one registry must be targeted.
-    if not answers['github'] and not answers['npm']:
+    if len(registries) == 0:
         raise PrintMessageError("\nERROR:\n  No registry selected.")
 
-    # Make sure that the user is logged in.
-    if answers['npm']:
-        try:
-            run_process(f"npm whoami --registry {REGISTRY_NPM}", root, show_output=False)
-        except RuntimeError:
-            raise PrintMessageError(f"""
-ERROR:
-  You are not logged in to your NPM account.
-  Run 'npm login --registry {REGISTRY_NPM}' and use your ShapeDiver account!
-""")
-
-    return answers['github'], answers['npm']
+    return registries
 
 
 def ask_user_and_prepare_commit_and_tags(

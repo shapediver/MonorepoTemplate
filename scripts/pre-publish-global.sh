@@ -12,7 +12,11 @@
 #       Is `True` when the user don't want to actually publish anything. Instead this script should
 #       only report what would have happened for testing and development purposes.
 #       Otherwise, this property is set to `False`.
-#   [2] components {object[]}:
+#   [2] no-git {boolean}:
+#       Is `True` when the user don't want to actually create any git commits. Instead, changed
+#       files should be keeps in the index.
+#       Otherwise, this property is set to `False`.
+#   [3] components {object[]}:
 #       Information about all components selected for publishing, in the format
 #        ```
 #        [ {
@@ -29,15 +33,16 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "${__dir}/utils.sh"
 
+# Try to run a custom script of the same name.
+# When no script was found, continue and run the default behaviour instead.
+try_run_custom_script "$@"
+
 # Show debug output when the publish command is executed in dry-run mode.
 if [[ "$1" == "True" ]] ; then
   echo "Running script '$0' with the following arguments:"
   echo "[1] dry-run = $1"
-  echo "[2] components = $(echo "$2" | npx json)"
+  echo "[2] no-git = $2"
+  echo "[3] components = $(echo "$3" | npx json)"
 fi
-
-# Try to run a custom script of the same name.
-# When no script was found, continue and run the default behaviour instead.
-try_run_custom_script "$@"
 
 # There is no default behaviour for the pre-publish lifecycle!
