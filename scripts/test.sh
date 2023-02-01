@@ -7,4 +7,4 @@ source "${__dir}/utils.sh"
 # When no script was found, continue and run the default behaviour instead.
 try_run_custom_script "$@"
 
-jest ./__tests__
+jest ./__tests__ --passWithNoTests

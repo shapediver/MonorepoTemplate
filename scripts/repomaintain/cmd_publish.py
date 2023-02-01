@@ -23,6 +23,10 @@ PublishableComponent = t.TypedDict('PublishableComponent', {
 
 
 def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
+    # Log mode to ensure user
+    if dry_run:
+        echo("Running in DRY-RUN mode!\n", 'wrn')
+
     # Initialize repo object and search for Lerna components.
     repo, root, all_components = cmd_helper()
 
