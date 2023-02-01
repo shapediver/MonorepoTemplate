@@ -55,7 +55,7 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
     app_on_error.append(functools.partial(cleanup, all_components))
 
     # Build argument string for global pre-/post-publish scripts.
-    global_args = [dry_run, no_git, json.dumps(publishable_components)]
+    global_args = [dry_run, no_git, json.dumps(publishable_components), json.dumps(registries)]
     global_args_str = " ".join([shlex.quote(str(arg)) for arg in global_args])
 
     # Run GLOBAL pre-publish.

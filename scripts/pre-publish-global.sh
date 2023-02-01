@@ -29,6 +29,14 @@
 #          "new_version": string
 #        } ]
 #        ```
+#   [4] registries {object[]}:
+#       Information about all selected registries that are targeted during publishing, in the format
+#        ```
+#        [ {
+#          "name": "github" | "npm",
+#          "url": string
+#        } ]
+#        ```
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "${__dir}/utils.sh"
@@ -43,6 +51,7 @@ if [[ "$1" == "True" ]] ; then
   echo "[1] dry-run = $1"
   echo "[2] no-git = $2"
   echo "[3] components = $(echo "$3" | npx json)"
+  echo "[4] registries = $(echo "$4" | npx json)"
 fi
 
 # There is no default behaviour for the pre-publish lifecycle!
