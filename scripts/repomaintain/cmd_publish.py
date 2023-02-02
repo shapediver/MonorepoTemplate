@@ -1,5 +1,6 @@
 import functools
 import json
+import os.path
 import re
 import shlex
 import typing as t
@@ -12,8 +13,10 @@ from utils import (
     join_paths, link_npmrc_file, load_cli_config, remove, run_process, unlink_npmrc_file,
     update_cli_config)
 
-REGISTRY_GITHUB = "https://npm.pkg.github.com/"
-REGISTRY_NPM = "https://registry.npmjs.org/"
+REGISTRY_GITHUB = "github"
+REGISTRY_GITHUB_URL = "https://npm.pkg.github.com/"
+REGISTRY_NPM = "npm"
+REGISTRY_NPM_URL = "https://registry.npmjs.org/"
 
 # Type of single Lerna component
 PublishableComponent = t.TypedDict('PublishableComponent', {
@@ -23,12 +26,12 @@ PublishableComponent = t.TypedDict('PublishableComponent', {
 
 # Type of single registry.
 Registry = t.TypedDict('Registry', {
-    'name': t.Literal['github', 'npm'],
+    'name': str,
     'url': str,
 })
 
 
-def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
+def run(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) -> bool:
     # Log mode to ensure user
     if dry_run:
         echo("Running in DRY-RUN mode!\n", 'wrn')
@@ -50,7 +53,6 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
     # Ask user to which registries the selected components should be published to and make sure that
     # the user is already logged in for all selected registries.
     registries = ask_user_for_registry(root)
-
     # Register cleanup handler for error case. However, we cannot really do much here.
     app_on_error.append(functools.partial(cleanup, all_components))
 
@@ -81,23 +83,50 @@ def run(dry_run: bool, no_git: bool, always_ask: bool) -> bool:
               " --access public" \
               " --registry "
 
-        # Publish to GitHub.
-        if any(r['name'] == "github" for r in registries):
+        # Publish to GitHub if requested.
+        github_registry = next((r for r in registries if r['name'] == REGISTRY_GITHUB), None)
+        if github_registry is not None:
             echo("Publishing to GitHub:")
 
-            # Authorization is done via an .npmrc file -> link from root when found.
-            link_npmrc_file(root, [c['component']], must_exist=True)
+            # Check first if the package-version already exists.
+            if not package_version_exists(root, c, github_registry):
+                # Authorization is done via an .npmrc file -> link from root.
+                link_npmrc_file(root, [c['component']], must_exist=True)
 
-            run_process(cmd + REGISTRY_GITHUB, c['component']['location'])
+                run_process(cmd + github_registry['url'], c['component']['location'])
+            elif skip_existing:
+                echo(f"Skipping publishing step since the package already exists.", 'wrn')
+            else:
+                raise PrintMessageError(
+                    f"""ERROR:
+  Package {c['component']['name']}@{c['new_version']} already exists in the ShapeDiver GitHub registry.
+  One of the following suggestions might solve the problem:
+    * Increase the package version and try again.
+    * Delete the package version from the GitHub registry and try again.
+    * Skip this registry for this package by running 'npm run publish -- --skip-existing'.
+""")
 
-        # Publish to NPM.
-        if any(r['name'] == "npm" for r in registries):
+        # Publish to NPM if requested.
+        npm_registry = next((r for r in registries if r['name'] == REGISTRY_NPM), None)
+        if npm_registry is not None:
             echo("Publishing to NPM:")
 
-            # Authorization is done via NPM CLI login -> remove .npmrc file when found.
-            unlink_npmrc_file(c['component'])
+            # Check first if the package-version already exists.
+            if not package_version_exists(root, c, npm_registry):
+                # Authorization is done via NPM CLI login -> remove .npmrc file when found.
+                unlink_npmrc_file(c['component'])
 
-            run_process(cmd + REGISTRY_NPM, c['component']['location'])
+                run_process(cmd + npm_registry['url'], c['component']['location'])
+            elif skip_existing:
+                echo(f"Skipping publishing step since the package already exists.", 'wrn')
+            else:
+                raise PrintMessageError(
+                    f"""ERROR:
+  Package {c['component']['name']}@{c['new_version']} already exists in the NPM registry.
+  One of the following suggestions might solve the problem:
+    * Increase the package version and try again.
+    * Skip this registry for this package by running 'npm run publish -- --skip-existing'.
+""")
 
         # Run post-publish
         run_process(f"npm run post-publish {args_str}", c['component']['location'])
@@ -331,26 +360,35 @@ def ask_user_for_registry(root: str) -> t.List[Registry]:
     registries: t.List[Registry] = []
 
     if answers['github']:
+        # Make sure a .npmrc exists at the repo's root.
+        npmrc = join_paths(root, ".npmrc")
+        if not os.path.exists(npmrc):
+            raise PrintMessageError(f"""
+ERROR:
+  Could not find file '{npmrc}'.
+  Documentation: https://github.com/shapediver/MonorepoTemplate/blob/master/README.md
+""")
+
         registries.append({
-            'name': 'github',
-            'url': REGISTRY_GITHUB
+            'name': REGISTRY_GITHUB,
+            'url': REGISTRY_GITHUB_URL
         })
 
     if answers['npm']:
         # Make sure that the user is logged in.
         if answers['npm']:
             try:
-                run_process(f"npm whoami --registry {REGISTRY_NPM}", root, show_output=False)
+                run_process(f"npm whoami --registry {REGISTRY_NPM_URL}", root, show_output=False)
             except RuntimeError:
                 raise PrintMessageError(f"""
-        ERROR:
-          You are not logged in to your NPM account.
-          Run 'npm login --registry {REGISTRY_NPM}' and use your ShapeDiver account!
-        """)
+ERROR:
+  You are not logged in to your NPM account.
+  Run 'npm login --registry {REGISTRY_NPM_URL}' and use your ShapeDiver account!
+""")
 
         registries.append({
-            'name': 'npm',
-            'url': REGISTRY_NPM
+            'name': REGISTRY_NPM,
+            'url': REGISTRY_NPM_URL
         })
 
     # At least one registry must be targeted.
@@ -549,6 +587,26 @@ def update_version(
         }])
         if not answers['proceed']:
             raise PrintMessageError("Process got stopped by the user.")
+
+
+def package_version_exists(root: str, c: PublishableComponent, registry: Registry) -> bool:
+    """ Checks the existence of the component in the given registry. """
+    if registry['name'] == REGISTRY_GITHUB:
+        # Authorization is done via an .npmrc file -> link from root.
+        link_npmrc_file(root, [c['component']], must_exist=True)
+    elif registry['name'] == REGISTRY_NPM:
+        # Authorization is done via NPM CLI login -> remove .npmrc file when found.
+        unlink_npmrc_file(c['component'])
+
+    pkg = f"{c['component']['name']}@{c['new_version']}"
+
+    try:
+        # Unfortunately, `npm search` does not work with the GitHub registry. Thus, we are using
+        # `npm view` here.
+        run_process(f"npm view {pkg}", root, show_output=False)
+        return True
+    except RuntimeError:
+        return False
 
 
 def cleanup(components: t.List[LernaComponent]) -> None:

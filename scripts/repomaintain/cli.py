@@ -123,9 +123,14 @@ def apply_upgrade() -> None:
 @click.option(
     "--always-ask",
     type=bool,
-    help="Always asks the user and sets answers as default values for invocations.",
+    help="Always asks the user and sets answers as default values for future invocations.",
     is_flag=True)
-def publish(dry_run: bool, dry_run_no_git: bool, always_ask: bool) -> None:
+@click.option(
+    "--skip-existing",
+    type=bool,
+    help="Doesn't publish components when the target version already exists.",
+    is_flag=True)
+def publish(dry_run: bool, dry_run_no_git: bool, always_ask: bool, skip_existing: bool) -> None:
     """
     Publishes one or more components.
 
@@ -157,7 +162,7 @@ def publish(dry_run: bool, dry_run_no_git: bool, always_ask: bool) -> None:
     """
     dry_run = dry_run or dry_run_no_git
     no_git = dry_run_no_git
-    cmd_wrapper(run_publish, dry_run, no_git, always_ask)
+    cmd_wrapper(run_publish, dry_run, no_git, always_ask, skip_existing)
 
 
 @cli.command()
