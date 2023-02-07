@@ -62,4 +62,4 @@ if [ -n "$(git ls-files --other --directory --exclude-standard)" ]; then
 fi
 
 # Finalize the merge
-git commit -m "Downstream changes from MonorepoTemplate"
+git commit -m "Downstream changes from MonorepoTemplate" --no-verify

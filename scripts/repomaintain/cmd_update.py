@@ -201,7 +201,7 @@ def commit_changes(repo: git.Repo, components: t.List[LernaComponent]) -> None:
         index.add(join_paths(component['location'], "package-lock.json"))
 
     if len(repo.index.diff("HEAD")) > 0:
-        index.commit("Update dependencies")
+        index.commit("Update dependencies", skip_hooks=True)
         echo("\nCreated a new commit.")
     else:
         echo("\nNo updates found.")

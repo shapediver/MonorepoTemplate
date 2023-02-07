@@ -109,7 +109,7 @@ def cmd_update_pinned() -> bool:
 
         # Create a new commit.
         if len(repo.index.diff("HEAD")) > 0:
-            index.commit("Update globally pinned dependencies")
+            index.commit("Update globally pinned dependencies", skip_hooks=True)
             echo("\nCreated a new commit.")
 
     return True

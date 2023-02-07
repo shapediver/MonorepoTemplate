@@ -455,7 +455,7 @@ def ask_user_and_prepare_commit_and_tags(
     index.add(join_paths(root, "scope.json"))
 
     # Create a new commit.
-    index.commit("Publish")
+    index.commit("Publish", skip_hooks=True)
     echo("\nCreated a new commit.")
 
     # Create Git tags and return the following list of all Git references that should be pushed:

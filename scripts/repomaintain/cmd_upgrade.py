@@ -80,7 +80,7 @@ def run_apply():
 
     # Create a new commit.
     if len(repo.index.diff("HEAD")) > 0:
-        index.commit("Upgrade dependencies")
+        index.commit("Upgrade dependencies", skip_hooks=True)
         echo("\nCreated a new commit.")
     else:
         echo("\nNo upgrades found.")
