@@ -116,9 +116,9 @@ def apply_upgrade() -> None:
     help="Doesn't publish anything.",
     is_flag=True)
 @click.option(
-    "--dry-run-no-git",
+    "--no-git",
     type=bool,
-    help="Doesn't publish or commit anything.",
+    help="Disable Git commit and tag creation.",
     is_flag=True)
 @click.option(
     "--always-ask",
@@ -130,7 +130,7 @@ def apply_upgrade() -> None:
     type=bool,
     help="Doesn't publish components when the target version already exists.",
     is_flag=True)
-def publish(dry_run: bool, dry_run_no_git: bool, always_ask: bool, skip_existing: bool) -> None:
+def publish(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) -> None:
     """
     Publishes one or more components.
 
@@ -160,8 +160,6 @@ def publish(dry_run: bool, dry_run_no_git: bool, always_ask: bool, skip_existing
       7. Push current Git branch and the created tags to 'origin' (skipped when flag `--dry-run` is
     set).
     """
-    dry_run = dry_run or dry_run_no_git
-    no_git = dry_run_no_git
     cmd_wrapper(run_publish, dry_run, no_git, always_ask, skip_existing)
 
 
