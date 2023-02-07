@@ -38,7 +38,7 @@ else
 fi
 
 # Run Python command
-exec_python "${path}" "${@:2}"
+exec_python "${path}" "${@:2}" || exit $?
 
 # Deactivate virtual environment
 deactivate
