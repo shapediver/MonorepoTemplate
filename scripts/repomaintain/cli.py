@@ -130,7 +130,18 @@ def apply_upgrade() -> None:
     type=bool,
     help="Doesn't publish components when the target version already exists.",
     is_flag=True)
-def publish(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) -> None:
+@click.option(
+    "--keep-version",
+    type=bool,
+    help="Doesn't increment component versions.",
+    is_flag=True)
+def publish(
+        dry_run: bool,
+        no_git: bool,
+        always_ask: bool,
+        skip_existing: bool,
+        keep_version: bool,
+) -> None:
     """
     Publishes one or more components.
 
@@ -160,7 +171,7 @@ def publish(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) 
       7. Push current Git branch and the created tags to 'origin' (skipped when flag `--dry-run` is
     set).
     """
-    cmd_wrapper(run_publish, dry_run, no_git, always_ask, skip_existing)
+    cmd_wrapper(run_publish, dry_run, no_git, always_ask, skip_existing, keep_version)
 
 
 @cli.command()

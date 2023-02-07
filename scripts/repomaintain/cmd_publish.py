@@ -31,7 +31,13 @@ Registry = t.TypedDict('Registry', {
 })
 
 
-def run(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) -> bool:
+def run(
+        dry_run: bool,
+        no_git: bool,
+        always_ask: bool,
+        skip_existing: bool,
+        keep_version: bool,
+) -> bool:
     # Log mode to ensure user
     if dry_run:
         echo("Running in DRY-RUN mode!\n", 'wrn')
@@ -48,7 +54,7 @@ def run(dry_run: bool, no_git: bool, always_ask: bool, skip_existing: bool) -> b
 
     # Ask user which components should get published.
     publishable_components = ask_user_for_components_and_version(
-        all_components, root, config, always_ask)
+        all_components, root, config, always_ask, keep_version)
 
     # Ask user to which registries the selected components should be published to and make sure that
     # the user is already logged in for all selected registries.
@@ -177,6 +183,7 @@ def ask_user_for_components_and_version(
         root: str,
         config: CliConfig,
         always_ask: bool,
+        keep_version: bool,
 ) -> t.List[PublishableComponent]:
     """
     Determine which components should be published and their respective version.
@@ -186,6 +193,7 @@ def ask_user_for_components_and_version(
     :param root: The path of the Git repository's root folder.
     :param config: The CLI configuration values.
     :param always_ask: Disables and overrides default selection of answers.
+    :param keep_version: Use the current version as new-version for components.
     :raise PrintMessageError: When the user input is not processable.
     :return: A list of all selected components to publish and their respective new version.
     """
@@ -289,8 +297,10 @@ ERROR:
                 msg += f"\n   * {c['name']}, {c['version']}"
             raise PrintMessageError(msg)
 
-        # Ask for the new version that should be used for all public components.
-        version = ask_for_new_version(unique_versions[0], None)
+        # Reuse the current version or ask for the new version (used for all components).
+        version = (
+            unique_versions[0] if keep_version
+            else ask_for_new_version(unique_versions[0], None))
 
         # Map public components into publishable structure.
         res = [{'component': c, 'new_version': version} for c in public_components]
@@ -312,12 +322,12 @@ ERROR:
         if len(selected_components) == 0:
             raise PrintMessageError("\nERROR:\n  At least one component must be selected.")
 
-        # Ask user for the new version of each selected component.
         for c in selected_components:
-            res.append({
-                'component': c,
-                'new_version': ask_for_new_version(c['version'], c['name'])
-            })
+            # Reuse the current version or ask for the new component version.
+            new_version = (
+                c['version'] if keep_version
+                else ask_for_new_version(c['version'], c['name']))
+            res.append({'component': c, 'new_version': new_version})
     else:
         # Catch invalid config values.
         raise PrintMessageError(
