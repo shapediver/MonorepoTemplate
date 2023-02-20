@@ -324,7 +324,7 @@ ERROR:
 
         for c in selected_components:
             # Reuse the current version or ask for the new component version.
-            new_version = (
+            new_version = str(
                 c['version'] if keep_version
                 else ask_for_new_version(c['version'], c['name']))
             res.append({'component': c, 'new_version': new_version})
