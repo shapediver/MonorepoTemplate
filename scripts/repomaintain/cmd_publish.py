@@ -369,37 +369,23 @@ def ask_user_for_registry(root: str) -> t.List[Registry]:
 
     registries: t.List[Registry] = []
 
-    if answers['github']:
-        # Make sure a .npmrc exists at the repo's root.
-        npmrc = join_paths(root, ".npmrc")
-        if not os.path.exists(npmrc):
-            raise PrintMessageError(f"""
+    # Make sure a .npmrc exists at the repo's root.
+    npmrc = join_paths(root, ".npmrc")
+    if not os.path.exists(npmrc):
+        raise PrintMessageError(f"""
 ERROR:
   Could not find file '{npmrc}'.
   Documentation: https://github.com/shapediver/MonorepoTemplate/blob/master/README.md
 """)
 
-        registries.append({
-            'name': REGISTRY_GITHUB,
-            'url': REGISTRY_GITHUB_URL
-        })
-
-    if answers['npm']:
-        # Make sure that the user is logged in.
-        if answers['npm']:
-            try:
-                run_process(f"npm whoami --registry {REGISTRY_NPM_URL}", root, show_output=False)
-            except RuntimeError:
-                raise PrintMessageError(f"""
-ERROR:
-  You are not logged in to your NPM account.
-  Run 'npm login --registry {REGISTRY_NPM_URL}' and use your ShapeDiver account!
-""")
-
-        registries.append({
-            'name': REGISTRY_NPM,
-            'url': REGISTRY_NPM_URL
-        })
+    registries.append({
+        'name': REGISTRY_GITHUB,
+        'url': REGISTRY_GITHUB_URL
+    })
+    registries.append({
+        'name': REGISTRY_NPM,
+        'url': REGISTRY_NPM_URL
+    })
 
     # At least one registry must be targeted.
     if len(registries) == 0:
