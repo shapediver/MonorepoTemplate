@@ -5,9 +5,7 @@ import shlex
 import shutil
 import sys
 import typing as t
-from pathlib import Path
 from subprocess import DEVNULL, STDOUT, run
-
 import click
 import git
 from PyInquirer import prompt
@@ -44,11 +42,11 @@ LernaComponent = t.TypedDict('LernaComponent', {
 })
 
 # Holds functions that should be executed when the application completed successfully.
-app_on_success: list[(): None] = []
+app_on_success: list[t.Callable[[], None]] = []
 
 # Holds functions that should be executed when the application stopped due to an error, or was
 # stopped by the user (CTRL+c).
-app_on_error: list[(): None] = []
+app_on_error: list[t.Callable[[], None]] = []
 
 
 # Helper class to stop the CLI and print the error message without the stack trace.
@@ -99,8 +97,10 @@ def update_cli_config(
         cli_config_content: t.Dict[str, t.Any] = json.load(reader)
 
     # Extract config and map values
-    config: CliConfig = cli_config_content['repomaintain'] if 'repomaintain' in cli_config_content \
-        else {}
+    config: CliConfig = (
+        cli_config_content['repomaintain']
+        if 'repomaintain' in cli_config_content
+        else {})
 
     # Set values
     if publish_mode is not None:
@@ -212,17 +212,6 @@ def run_process(
             return None
 
 
-def get_lerna_components(root: str) -> t.List[LernaComponent]:
-    """
-    Returns information about all components that are managed by Lerna.
-
-    :param root: The path of the Git repository's root folder.
-    :return: List of all local components in topological order.
-    """
-    res = run_process("npx lerna list --all --toposort --json", root, get_output=True)
-    return json.loads(res)
-
-
 def join_paths(*args) -> str:
     """
     Helper function to join paths (cross-platforms).
@@ -299,6 +288,7 @@ def link_npmrc_file(
         components: t.List[LernaComponent],
         *,
         must_exist: bool = False,
+        remove_registries: bool = False,
 ) -> None:
     """
     Tries to copy the .npmrc file of the repository's root to each component.
@@ -306,12 +296,22 @@ def link_npmrc_file(
     :param root: The path of the Git repository's root folder.
     :param components: The Lerna components that should get a copy of the .npmrc file.
     :param must_exist: Stops when set to `true` and the file was not found.
+    :param remove_registries: Disables all scope-registry assignments inside the .npmrc file.
     :raise FileNotFoundError: When the file was not found and `must_exist=True`.
     """
     npmrc = join_paths(root, ".npmrc")
     if os.path.exists(npmrc):
+        content: str
+        with open(npmrc, 'r') as reader:
+            content = reader.read()
+
+            # Prepend all scope-registry assignment lines with a comment symbol.
+            if remove_registries:
+                content = re.sub(r"^\s*(\@.+:registry=)", r";\1", content, flags = re.MULTILINE)
+
         for component in [c for c in components if c['name'] != "root"]:
-            copy(npmrc, join_paths(component['location'], ".npmrc"))
+            with open(join_paths(component['location'], ".npmrc"), 'w') as writer:
+                writer.write(content)
     elif must_exist:
         raise PrintMessageError(f"\nERROR:\n  Could not link {npmrc}: File does not exist.")
     else:
@@ -324,13 +324,6 @@ def unlink_npmrc_file(component: LernaComponent) -> None:
         # Remove linked .npmrc file.
         npmrc_file = join_paths(component['location'], ".npmrc")
         remove(npmrc_file)
-
-
-def reinstall_dependencies(root: str) -> None:
-    """ Re-installs dependencies in all Lerna components including root. """
-    run_process("npm i", root)
-    run_process("npx lerna clean --yes", root)
-    run_process("npx lerna bootstrap", root)
 
 
 def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
@@ -350,7 +343,7 @@ def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
 
     # Open and parse configuration file.
     with open(atlassianrc, 'r') as reader:
-        config: t.TypedDict[str, str] = json.load(reader)
+        config: t.Dict[str, str] = json.load(reader)
 
     # Instantiate client, no authentication performed yet.
     confluence = Confluence(
@@ -496,8 +489,9 @@ def cmd_helper() -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
     root: str = repo.git.rev_parse("--show-toplevel")
 
     # Get list of all components that are managed by Lerna
-    components = get_lerna_components(root)
-    echo(f"Found {len(components)} components managed by Lerna.")
+    res = run_process("npx lerna list --all --toposort --json", root, get_output=True)
+    components = json.loads(res or '')
+    echo(f"Found {len(components)} managed components in this repository.")
 
     # Add the repo's root to the component list if requested.
     components.append({
@@ -507,9 +501,9 @@ def cmd_helper() -> t.Tuple[git.Repo, str, t.List[LernaComponent]]:
         'location': root,
     })
 
-    # Git-Bash on Windows supports both separators: '\\' and '/'. However, when passing a path as an
-    # argument to a shell script, the '\\'-separator has to be escaped again. To avoid this, we just
-    # use the '/'-separator on all systems.
+    # Git-Bash on Windows supports both separators: '\\' and '/'. However, when passing a path as
+    # an argument to a shell script, the '\\'-separator has to be escaped again. To avoid this,
+    # we just use the '/'-separator on all systems.
     for component in components:
         component['location'] = component['location'].replace("\\", "/")
 

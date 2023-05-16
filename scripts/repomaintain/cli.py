@@ -1,7 +1,6 @@
 import sys
 import traceback
 import typing as t
-
 import click
 
 from cmd_publish import run as run_publish
@@ -22,7 +21,7 @@ def handler(status: t.Literal['ok', 'err']) -> None:
         sys.exit(1)
 
 
-def cmd_wrapper(cmd_fn: t.Callable[[t.Any], bool], *args) -> None:
+def cmd_wrapper(cmd_fn: t.Callable[..., bool], *args) -> None:
     """ Wrapper around a command function that allows to use `click` functions. """
     try:
         res = cmd_fn(*args)
@@ -49,9 +48,8 @@ def update(no_git: bool) -> None:
     """
     Update and audit dependencies.
 
-    Updates and audits all NPM dependencies of Lerna managed components. The update respects each
-    dependency's semantic versioning specified in the component's 'package.json' file. This process
-    changes primarily the 'package-lock.json' file.
+    Updates and audits the dependencies of all components. The update respects each dependency's
+    semantic versioning specified in the component's 'package.json' file.
     """
     cmd_wrapper(run_update, no_git)
 
@@ -82,7 +80,7 @@ def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     """
     Upgrades dependencies to the latest versions.
 
-    Upgrades one or more NPM dependencies in all Lerna managed components. The upgrade process keeps
+    Upgrades one or more NPM dependencies in all managed components. The upgrade process keeps
     semantic versioning policies but ignores specified versions.
 
     Example:
@@ -91,6 +89,9 @@ def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     THIS PROCESS DOES NOT AUDIT THE NEW DEPENDENCIES OR UPDATES THE LOCK FILE!
     Run the `apply-upgrade` command to finalize the changes.
     """
+    if target == "major":
+        target = "latest"
+
     cmd_wrapper(run_upgrade, target.lower(), dep_filter, dep_exclude)
 
 
@@ -102,8 +103,8 @@ def apply_upgrade() -> None:
     This command should be called when the `upgrade` command was executed and after the user made
     sure that the new dependency versions do not break the application(s).
 
-    Finalizes the version upgrade process by auditing the dependencies, updating the
-    package-lock.json file of Lerna managed components and committing all open changes to Git.
+    Finalizes the version upgrade process by auditing the dependencies, updating the lock-file and
+    committing all open changes to Git.
     """
     cmd_wrapper(run_update, True)
     cmd_wrapper(run_apply_upgrade)

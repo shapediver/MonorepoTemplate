@@ -4,7 +4,6 @@ import os.path
 import re
 import shlex
 import typing as t
-
 import git
 import semantic_version as semver
 
@@ -49,15 +48,15 @@ def run(
     if not no_git:
         check_open_changes(repo)
 
-    # Load cli config file.
+    # Load CLI config file.
     config = load_cli_config(root)
 
     # Ask user which components should get published.
     publishable_components = ask_user_for_components_and_version(
         all_components, root, config, always_ask, keep_version)
 
-    # Ask user to which registries the selected components should be published to and make sure that
-    # the user is already logged in for all selected registries.
+    # Ask user to which registries the selected components should be published to and make sure
+    # that the user is already logged in for all selected registries.
     registries = ask_user_for_registry(root)
     # Register cleanup handler for error case. However, we cannot really do much here.
     app_on_error.append(functools.partial(cleanup, all_components))
@@ -96,7 +95,7 @@ def run(
 
             # Check first if the package-version already exists.
             if not package_version_exists(root, c, github_registry):
-                # Authorization is done via an .npmrc file -> link from root.
+                # Authorization and registry specification is done in .npmrc file
                 link_npmrc_file(root, [c['component']], must_exist=True)
 
                 run_process(cmd + github_registry['url'], c['component']['location'])
@@ -119,8 +118,8 @@ def run(
 
             # Check first if the package-version already exists.
             if not package_version_exists(root, c, npm_registry):
-                # Authorization is done via NPM CLI login -> remove .npmrc file when found.
-                unlink_npmrc_file(c['component'])
+                # Authorization is done in .npmrc file
+                link_npmrc_file(root, [c['component']], must_exist=True, remove_registries=True)
 
                 run_process(cmd + npm_registry['url'], c['component']['location'])
             elif skip_existing:
@@ -137,13 +136,9 @@ def run(
         # Run post-publish
         run_process(f"npm run post-publish {args_str}", c['component']['location'])
 
-    # Update the package-lock files to apply the changed component versions. Skip this step in
-    # dry-run mode since NPM will not find the new package versions, resulting in an error.
-    if not dry_run:
-        for component in all_components:
-            run_process("npm install --package-json-only --no-fund --no-audit", component['location'])
-    else:
-        echo("\nSkipping update of package-lock.json files in dry-run mode.", 'wrn')
+    # Update the pnpm-lock.yaml file to apply the changed component versions.
+    echo("\nUpdating lock-file:")
+    run_process("pnpm install", root)
 
     # Create Git commit and tags
     to_push: t.Optional[t.List[str]] = None
@@ -248,7 +243,7 @@ def ask_user_for_components_and_version(
                     raise PrintMessageError("Process got stopped by the user.")
                 a['version'] = custom_version
 
-        return a['version']
+        return str(a['version'])
 
     # We never publish components that are marked as "private".
     public_components = [c for c in components if c['private'] is False]
@@ -378,14 +373,16 @@ ERROR:
   Documentation: https://github.com/shapediver/MonorepoTemplate/blob/master/README.md
 """)
 
-    registries.append({
-        'name': REGISTRY_GITHUB,
-        'url': REGISTRY_GITHUB_URL
-    })
-    registries.append({
-        'name': REGISTRY_NPM,
-        'url': REGISTRY_NPM_URL
-    })
+    if answers['github']:
+        registries.append({
+            'name': REGISTRY_GITHUB,
+            'url': REGISTRY_GITHUB_URL
+        })
+    if answers['npm']:
+        registries.append({
+            'name': REGISTRY_NPM,
+            'url': REGISTRY_NPM_URL
+        })
 
     # At least one registry must be targeted.
     if len(registries) == 0:
@@ -405,10 +402,10 @@ def ask_user_and_prepare_commit_and_tags(
     """ Prepares the Git commit and tag(s). """
     index = repo.index
 
-    # Add all package.json changes to the Git index.
+    index.add(join_paths(root, "pnpm-lock.yaml"))
+
     for component in all_components:
         index.add(join_paths(component['location'], "package.json"))
-        index.add(join_paths(component['location'], "package-lock.json"))
 
     # List of all Git tags that should be created.
     tag_names = []
@@ -588,11 +585,11 @@ def update_version(
 def package_version_exists(root: str, c: PublishableComponent, registry: Registry) -> bool:
     """ Checks the existence of the component in the given registry. """
     if registry['name'] == REGISTRY_GITHUB:
-        # Authorization is done via an .npmrc file -> link from root.
+        # Authorization and registry specification is done in .npmrc file
         link_npmrc_file(root, [c['component']], must_exist=True)
     elif registry['name'] == REGISTRY_NPM:
-        # Authorization is done via NPM CLI login -> remove .npmrc file when found.
-        unlink_npmrc_file(c['component'])
+        # Authorization is done in .npmrc file
+        link_npmrc_file(root, [c['component']], must_exist=True, remove_registries=True)
 
     pkg = f"{c['component']['name']}@{c['new_version']}"
 

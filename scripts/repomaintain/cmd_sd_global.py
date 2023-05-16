@@ -1,7 +1,6 @@
 import json
 import re
 import typing as t
-
 import git
 
 from utils import (
@@ -62,7 +61,7 @@ def cmd_update_pinned() -> bool:
 
     # Stop when no dependencies have been pinned.
     if len(pinned_deps) == 0:
-        echo("There are currently no globally pinned packages :)")
+        echo("\nThere are currently no globally pinned packages :)")
         return True
 
     # Stores the name of all globally pinned dependencies that are currently in use.
@@ -91,6 +90,10 @@ def cmd_update_pinned() -> bool:
         # Write changes to package.json file.
         with open(pkg_json_file, 'w') as writer:
             writer.write(json.dumps(pkg_json_content, indent=2) + "\n")
+
+    if len(pinned_deps_in_use) == 0:
+        echo("\nThere are currently no globally pinned packages in use :)")
+        return True
 
     # Log which dependencies have been changed.
     msg = "\nThe versions of the following globally pinned packages have been enforced:"

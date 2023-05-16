@@ -4,17 +4,16 @@ import typing as t
 
 from utils import (
     LernaComponent, app_on_error, cmd_helper, copy, echo, fetch_globally_pinned_dependencies,
-    git_repo, join_paths, link_npmrc_file, move, reinstall_dependencies, remove, run_process,
-    unlink_npmrc_file)
+    git_repo, join_paths, link_npmrc_file, move, remove, run_process, unlink_npmrc_file)
 
 
 def run_upgrade(
-        target: t.Literal['major', 'minor', 'patch'],
+        target: t.Literal['latest', 'minor', 'patch'],
         dep_filter: str,
         dep_exclude: t.Optional[str],
 ) -> bool:
     # Initialize repo object and search for Lerna components.
-    repo, root, components = cmd_helper()
+    _, root, components = cmd_helper()
 
     # Fetch globally pinned dependencies. These packages have to be ignored in the upgrade process.
     pinned_deps = fetch_globally_pinned_dependencies(root)
@@ -36,7 +35,7 @@ def run_upgrade(
     reject = pinned_deps_string + "," + (dep_exclude or "")
 
     # Build command to upgrade dependencies.
-    cmd = f"npx ncu --upgrade --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
+    cmd = f"npx ncu --upgrade --packageManager npm --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
     if reject != ",":
         cmd += f" --reject {shlex.quote(reject)}"
 
@@ -49,7 +48,7 @@ def run_upgrade(
 
     # Install upgraded dependencies.
     echo("\nInstalling upgraded dependencies:")
-    reinstall_dependencies(root)
+    run_process("pnpm install", root)
 
     # Log information about next steps.
     echo(
@@ -59,7 +58,7 @@ Dependency upgrade successfully applied.
 Please complete the following steps next:
   1. Test the application(s) and make sure that the new versions do not cause problems. When you
     encounter issues and cannot fix them, downgrade the version of the problematic dependencies.
-    (Do not forget to run `npm run bootstrap` after downgrading versions to apply the changes).
+    (Do not forget to run `pnpm install` after downgrading versions to apply the changes).
   
   2. Persist your changes by running `npm run apply-upgrade`.
 """, 'wrn')
