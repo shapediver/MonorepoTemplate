@@ -62,5 +62,6 @@ npx json -q -I -f "${pkg_path}package.json" -e "this.devDependencies['webpack']=
 npx json -q -I -f "${pkg_path}package.json" -e "this.devDependencies['webpack-cli']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.webpack-cli')\""
 npx json -q -I -f "${pkg_path}package.json" -e "this.devDependencies['webpack-dev-server']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.webpack-dev-server')\""
 
-npm run bootstrap
+cd "${root_path}"
+pnpm install
 echo "Package '${name}' successfully created!"

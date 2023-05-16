@@ -56,5 +56,6 @@ npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['jest']=\"$
 npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['lerna']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.lerna')\""
 npx json -q -I -f "${lib_path}package.json" -e "this.devDependencies['typescript']=\"$(npx json -f "${root_path}/package.json" 'devDependencies.typescript')\""
 
-npm run bootstrap
+cd "${root_path}"
+pnpm install
 echo "Library '${name}' successfully created!"

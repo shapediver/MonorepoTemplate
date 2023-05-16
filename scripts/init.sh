@@ -7,7 +7,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 # Check NPM and setup JavaScript
 npm run check-npm-version
-npm i
+pnpm install
 
 # Check and setup Python with virtual environment
 source "${__dir}/init-python-environment.sh" # 'exit' in sub-script should also stop this script
@@ -23,4 +23,3 @@ if [ "$scope" = 'test' ]; then
   npx json -q -I -f "${scope_file}" -e "this.scope=\"${scope_name}\""
 fi
 
-npm run bootstrap
