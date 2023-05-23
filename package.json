@@ -2,7 +2,6 @@
   "name": "root",
   "private": true,
   "scripts": {
-    "bootstrap": "npm run check-npm-version && lerna bootstrap",
     "clean": "lerna clean --yes && rm -rf node_modules",
     "reset": "lerna exec -- rm -rf ./dist && npm run clean && rm -r ./.venv",
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
