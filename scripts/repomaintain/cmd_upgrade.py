@@ -67,15 +67,15 @@ Please complete the following steps next:
 
 
 def run_apply():
-    repo = git_repo()
+    repo, root, _ = cmd_helper()
     index = repo.index
 
     # The general idea is, that the user runs the upgrade command before testing the new dependency
     # versions via unit test or whatever. This might result in file changes. Therefore, we have to
     # add all open changes and new files to the index when the user wants to persist the upgrade.
-    changed_and_new_files = repo.index.diff(None) + repo.index.diff("HEAD")
-    for item in changed_and_new_files:
-        index.add(item.a_path)
+    changed_and_new_files = " ".join(item.a_path for item in index.diff(None) + index.diff('HEAD'))
+    # NOTE repo.index.add and .remove have problems with deleted files -> call git directly!
+    run_process(f"git add {changed_and_new_files}", root)
 
     # Create a new commit.
     if len(repo.index.diff("HEAD")) > 0:
@@ -115,3 +115,5 @@ def cleanup_on_error(components: t.List[LernaComponent]) -> None:
 
         # Remove linked .npmrc file.
         unlink_npmrc_file(component)
+
+
