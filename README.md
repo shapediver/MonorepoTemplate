@@ -12,6 +12,10 @@ But trust me, there is no magic involved, mostly just creating a nice project se
 You can either add packages and libraries in the `packages` folder or in the `libs` folder, respectively.
 Please see below regarding custom scripts on how to do that.
 
+As a package manager we use [PNPM](https://pnpm.io/).
+PNPM is a much faster and disk space efficient manager compared to regular NPM, that comes with nice additional features, like sane lock-file usage.
+However, feel for to use NPM as a simple task runner (`npm run <script>`).
+
 
 ## 1. Setup
 
@@ -27,6 +31,11 @@ and
 `nvm use 16`
 
 This will install the latest node v16 and the corresponding npm version.
+
+### PNPM
+
+You need to install a specific version PNPM (8) to make use of all the nice helper tools and scripts and come with this template.
+Follow the [installation instructions](https://pnpm.io/installation) for your system.
 
 ### GIT
 
@@ -125,6 +134,8 @@ Run `npm run update` to update all dependencies.
 This process only updates the `package-lock.json` files of our Lerna managed components and automatically excludes globally pinned dependencies.
 Afterwards, a new Git commit is created that includes the lock-files.
 
+Run `npm run update -- --help` to see a list of all available options.
+
 ### Upgrade
 Upgrading of dependencies is the process of increasing the versions of dependencies regardless of their SemVer range.
 
@@ -136,6 +147,10 @@ If you find an issue that you are not able to fix, downgrade the version of the 
 When you are sure that everything is working, run `npm run apply-upgrade` to persist the new versions.
 This process audits and installs the new versions and updates the `package-lock.json` files of your Lerna managed components.
 Afterwards, a new Git commit is created that includes all changed files.
+
+By default, this command upgrades all dependencies.
+However, this can also be reduced to individual dependencies, or, all dependencies except some specified ones.
+Run `npm run upgrade -- --help` to see a list of all available options.
 
 ### Global Version Pinning
 Some of our ShapeDiver applications are already quite comprehensive, consisting of multiple ShapeDiver packages.
@@ -176,10 +191,24 @@ There are various build tasks for different scenarios in each package.
 | `npm run build-prod` | Builds this package and all internal dependencies with webpack and puts them into a single file.  (folder: `dist-prod`, only for actual packages) |
 
 
+
 ## 6. Testing
 
 Call `npm run test` to test all packages or `npm run test` in a package to just test that single package.
 Testing is configured via jest and should be fairly easy to use.
+
+### Custom Test Logic
+
+All packages execute the default test script located at `./scripts/test.sh`.
+If you want to run custom test logic for one or all of your packages, simply create a custom test script at `./scripts/custom/test.sh`:
+```bash
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+# TODO add your custom test behavior here.
+```
+For now on, all your packages will execute your custom test script instead!
 
 
 ## 7. Publishing
@@ -194,9 +223,13 @@ You need permissions for `repo`, `write:packages`, `read:packages` and `delete:p
 
 Then create on the root of this repository a `.npmrc` file, if there isn't one already and add the following:
 ```bash
+; assign auth-tokens to each registry
 //npm.pkg.github.com/:_authToken=TOKEN
-registry=https://npm.pkg.github.com/shapediver
+//registry.npmjs.org/:_authToken=TOKEN
+
+; link packages of scope `@shapediver` to private ShapeDiver GitHub registry
 @shapediver:registry=https://npm.pkg.github.com/
+
 ```
 Here, replace `TOKEN` with you access token that you just created.
 
@@ -211,9 +244,54 @@ This is very useful, since new tools that make your live as a developer easier, 
 To downstream changes from the Monorepo Template, simply run `npm run downstream` and follow the prompts.
 
 
-## 9. Example
+## 9. Customizations
 
-So this is the goal of our example. We want to create to packages, `package_a` and `package_b`, where `package_b` has a dependency on `package_a`.
+### Custom Scripts
+
+All packages execute the following default scripts:
+* `npm run build` executes `./scripts/build.sh`.
+* `npm run build-dep` executes `./scripts/build-dep.sh`.
+* `npm run build-dev` executes `./scripts/build-dev.sh`.
+* `npm run build-prod` executes `./scripts/build-prod.sh`.
+* `npm run test` executes `./scripts/test.sh`.
+
+__THOSE FILES SHOULD NOT BE CHANGED!__\
+Instead, create a new file with the same name in `./scripts/custom/`.
+
+For instance, create the file `./scripts/custom/build.sh`:
+```bash
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+# TODO add your custom build behavior here.
+```
+For now on, all your packages will execute your custom build script instead of the default one.
+
+
+## Different `node_modules` Structure
+
+By default, PNPM uses a [non-flat node_modules structure](https://pnpm.io/motivation#creating-a-non-flat-node_modules-directory).
+This prevents source code (your code and that of dependencies) to access any dependency that have not been added as their dependency.
+However, this can lead to problems in some cases.
+
+How to fix dependency problems with the default PNPM structure?
+1. You might find another package on [npmjs](https://www.npmjs.com/) that can be used instead.
+2. If you wanna stick with the problematic dependency, activate a __semistrict structure__ by adding the following line to your `.npmrc` file:
+   ```bash
+   hoist=true
+   ```
+3. As a last resort you can activate the __loose structure__ that NPM is using by adding the following line to your `.npmrc` file:
+   ```bash
+   shamefully-hoist=true
+   ```
+
+For more details have look at the [PNPM documentation](https://pnpm.io/npmrc).
+
+
+## 10. Example
+
+So this is the goal of our example: We want to create two packages, `package_a` and `package_b`, where `package_b` has a dependency on `package_a`.
 After, we want to publish both packages.
 
 First we create both packages:
@@ -256,6 +334,10 @@ Now we want to publish the repository, therefore we just call `npm run publish` 
 
 ## 10. FAQ
 
-- I add a dependency, but in the typescript file, it still shows me an error. What is up with that?
+I add a dependency, but in the typescript file, it still shows me an error. What is up with that?
+: The VSCode typescript language server has some issues, just restart it or VSCode in general.
 
-The VSCode typescript language server has some issues, just restart it or VSCode in general.
+Why can we not change the default build or test (e.g. `./scripts/build.sh`) files directly?
+: There are actually two reasons for not changing these files.
+First, when we later downstream new changes from the Monorepo, we will get additional merge conflicts.
+Second, it makes it very clear to all developers if there has been some custom logic added to the build or test process.
