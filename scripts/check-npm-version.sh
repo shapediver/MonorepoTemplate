@@ -4,8 +4,8 @@ set -o pipefail
 set -o nounset
 
 # We try to use the same Node.js (LTS) and NPM versions for all TypeScript ShapeDiver projects.
-target_node_version="v16"
-target_npm_version="8"
+target_node_version="v20"
+target_npm_version="10"
 target_pnpm_version="8"
 
 node_version=$(node -v | cut -d. -f1)
