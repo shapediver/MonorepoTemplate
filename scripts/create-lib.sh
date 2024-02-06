@@ -34,6 +34,9 @@ echo "" > "${lib_path}/__tests__/${name}.test.js"
 # copy tsconfig
 cp "${__dir}/utils/tsconfig.json" "${lib_path}"
 
+# Adopt source-root in tsconfig
+npx json -q -I -f "${lib_path}tsconfig.json" -e "this.compilerOptions.sourceRoot=\"libs/${name}/src/\""
+
 # adjust package.json
 npx json -q -I -f "${lib_path}package.json" -e "this.name=\"@shapediver/${name}\""
 npx json -q -I -f "${lib_path}package.json" -e 'this.description=""'

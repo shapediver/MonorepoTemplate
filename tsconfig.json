@@ -9,7 +9,8 @@
         "target": "es5",
         "strict": true,
         "rootDir": "src",
-        "outDir": "dist"
+        "outDir": "dist",
+        "sourceRoot": ""
     },
     "include": [
         "./**/*.ts"
