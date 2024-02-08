@@ -5,8 +5,7 @@
     ],
     "compilerOptions": {
         "rootDir": "src",
-        "outDir": "dist",
-        "sourceRoot": "<set to relative path>"
+        "outDir": "dist"
     },
     "exclude": [
         "__tests__/**/*",
