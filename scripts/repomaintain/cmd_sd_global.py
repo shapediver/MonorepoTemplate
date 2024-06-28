@@ -10,6 +10,7 @@ from utils import (
     fetch_globally_pinned_dependencies,
     git_repo,
     join_paths,
+    load_cli_config,
     update_globally_pinned_dependencies,
 )
 
@@ -62,6 +63,9 @@ def cmd_update_pinned() -> bool:
     # Stop processing when open changes in package.json files have been detected.
     check_open_changes(repo)
 
+    # Load CLI config file.
+    config = load_cli_config(root)
+
     # Try to connect to Confluence and load all pinned dependencies.
     pinned_deps = fetch_globally_pinned_dependencies(root)
 
@@ -101,7 +105,7 @@ def cmd_update_pinned() -> bool:
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
-            writer.write(json.dumps(pkg_json_content, indent=2) + "\n")
+            writer.write(json.dumps(pkg_json_content, indent=config["indent"]) + "\n")
 
     if len(pinned_deps_in_use) == 0:
         echo("\nThere are currently no globally pinned packages in use :)")

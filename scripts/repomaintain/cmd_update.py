@@ -6,6 +6,7 @@ import typing as t
 import git
 import semantic_version as semver
 from utils import (
+    CliConfig,
     LernaComponent,
     PrintMessageError,
     app_on_error,
@@ -14,6 +15,7 @@ from utils import (
     copy,
     echo,
     join_paths,
+    load_cli_config,
     move,
     remove,
     run_process,
@@ -28,6 +30,9 @@ def run(no_git: bool) -> bool:
     if not no_git:
         check_open_changes(repo)
 
+    # Load CLI config file.
+    config = load_cli_config(root)
+
     # Register cleanup handler for error case. We want to undo the update call as much as possible
     # (node_modules changes persist however).
     app_on_error.append(functools.partial(cleanup_on_error, root, components))
@@ -37,7 +42,7 @@ def run(no_git: bool) -> bool:
 
     # Prepare Lerna components for dependency updates and auditing. Remove Lerna managed components
     # from package.json files to ignore them during updating and auditing.
-    prepare_components(components)
+    prepare_components(components, config)
 
     # Update all dependencies according to sem-ver constraints and installs missing packages.
     # The new versions are updated in package.json and pnpm-lock.json.
@@ -89,7 +94,7 @@ WARNING:
             return False
 
     # Cleanup - We have to add previously removed internal dependencies again.
-    cleanup_on_success(root, components)
+    cleanup_on_success(root, components, config)
 
     # We have to update the pnpm-lock.yaml file since the pnpm-update command removed all internal
     # dependencies.
@@ -129,7 +134,7 @@ def backup_package_files(root: str, components: t.List[LernaComponent]) -> None:
         copy(pkg_json_file, pkg_json_file + ".bak", must_exist=True)
 
 
-def prepare_components(components: t.List[LernaComponent]) -> None:
+def prepare_components(components: t.List[LernaComponent], config: CliConfig) -> None:
     """
     Remove linked internal dependencies from package.json files.
 
@@ -196,7 +201,7 @@ Component {internal_dependency['name']}:
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
-            writer.write(json.dumps(pkg_json_content, indent=2) + "\n")
+            writer.write(json.dumps(pkg_json_content, indent=config["indent"]) + "\n")
 
 
 def commit_changes(
@@ -222,7 +227,9 @@ def commit_changes(
         echo("\nNo updates found.")
 
 
-def cleanup_on_success(root: str, components: t.List[LernaComponent]) -> None:
+def cleanup_on_success(
+    root: str, components: t.List[LernaComponent], config: CliConfig
+) -> None:
     """Restores the removed references of internal dependencies."""
     for component in components:
         pkg_json_file = join_paths(component["location"], "package.json")
@@ -245,7 +252,7 @@ def cleanup_on_success(root: str, components: t.List[LernaComponent]) -> None:
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
-            writer.write(json.dumps(pkg_json_original, indent=2) + "\n")
+            writer.write(json.dumps(pkg_json_original, indent=config["indent"]) + "\n")
 
         # Remove backup files.
         remove(pkg_json_file + ".bak")

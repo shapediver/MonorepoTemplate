@@ -93,7 +93,7 @@ def run(
     run_process(f"npm run pre-publish-global {global_args_str}", root)
 
     # Update component versions.
-    update_version(all_components, publishable_components)
+    update_version(all_components, publishable_components, config)
 
     for c in publishable_components:
         echo(f"\nPublishing component {c['component']['name']}:")
@@ -563,6 +563,7 @@ def ask_user_and_push_to_origin(
 def update_version(
     all_components: t.List[LernaComponent],
     publishable_components: t.List[PublishableComponent],
+    config: CliConfig,
 ) -> None:
     """
     Updates versions in the package.json file of the given components.
@@ -642,7 +643,7 @@ def update_version(
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
-            writer.write(json.dumps(pkg_json_content, indent=2) + "\n")
+            writer.write(json.dumps(pkg_json_content, indent=config["indent"]) + "\n")
 
     # Log additional output if forced updates have been applied.
     forced_updates_applied = False

@@ -25,6 +25,7 @@ CliConfig = t.TypedDict(
     {
         "publish_mode": t.Optional[t.Literal["all", "independent"]],
         "publish_tag_name": t.Optional[str],
+        "indent": int,
     },
 )
 
@@ -72,10 +73,7 @@ def load_cli_config(root: str) -> CliConfig:
     with open(cli_config_file, "r") as reader:
         cli_config_content: t.Dict[str, t.Any] = json.load(reader)
 
-    mapped: CliConfig = {
-        "publish_mode": None,
-        "publish_tag_name": None,
-    }
+    mapped = default_config()
 
     # Extract config and map values
     if "repomaintain" in cli_config_content:
@@ -89,6 +87,9 @@ def load_cli_config(root: str) -> CliConfig:
 
     if "publish_tag_name" in config:
         mapped["publish_tag_name"] = config["publish_tag_name"]
+
+    if "indent" in config:
+        mapped["indent"] = config["indent"]
 
     return mapped
 
@@ -110,7 +111,7 @@ def update_cli_config(
     config: CliConfig = (
         cli_config_content["repomaintain"]
         if "repomaintain" in cli_config_content
-        else {}
+        else default_config()
     )
 
     # Set values
@@ -124,7 +125,16 @@ def update_cli_config(
 
     # Write changes to scope.json file.
     with open(cli_config_file, "w") as writer:
-        writer.write(json.dumps(cli_config_content, indent=2) + "\n")
+        writer.write(json.dumps(cli_config_content, indent=config["indent"]) + "\n")
+
+
+def default_config() -> CliConfig:
+    """Returns the CLI config object with default values."""
+    return {
+        "publish_mode": None,
+        "publish_tag_name": None,
+        "indent": 2,
+    }
 
 
 def echo(
