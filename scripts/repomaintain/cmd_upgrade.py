@@ -3,21 +3,32 @@ import shlex
 import typing as t
 
 from utils import (
-    LernaComponent, app_on_error, cmd_helper, copy, echo, fetch_globally_pinned_dependencies,
-    git_repo, join_paths, link_npmrc_file, move, remove, run_process, unlink_npmrc_file)
+    LernaComponent,
+    app_on_error,
+    cmd_helper,
+    copy,
+    echo,
+    fetch_globally_pinned_dependencies,
+    join_paths,
+    link_npmrc_file,
+    move,
+    remove,
+    run_process,
+    unlink_npmrc_file,
+)
 
 
 def run_upgrade(
-        target: t.Literal['latest', 'minor', 'patch'],
-        dep_filter: str,
-        dep_exclude: t.Optional[str],
+    target: t.Literal["latest", "minor", "patch"],
+    dep_filter: str,
+    dep_exclude: t.Optional[str],
 ) -> bool:
     # Initialize repo object and search for Lerna components.
     _, root, components = cmd_helper()
 
     # Fetch globally pinned dependencies. These packages have to be ignored in the upgrade process.
     pinned_deps = fetch_globally_pinned_dependencies(root)
-    pinned_deps_string = ",".join([p['name'] for p in pinned_deps])
+    pinned_deps_string = ",".join([p["name"] for p in pinned_deps])
 
     # Register cleanup handler for error case - We want to undo the upgrade call.
     app_on_error.append(functools.partial(cleanup_on_error, components))
@@ -41,7 +52,7 @@ def run_upgrade(
 
     for component in components:
         echo(f"\nUpgrading dependencies of component {component['name']}:")
-        run_process(cmd, cwd=component['location'])
+        run_process(cmd, cwd=component["location"])
 
     # Cleanup - We have to remove the created backups of package.json files.
     cleanup_on_success(components)
@@ -61,7 +72,9 @@ Please complete the following steps next:
     (Do not forget to run `pnpm install` after downgrading versions to apply the changes).
   
   2. Persist your changes by running `npm run apply-upgrade`.
-""", 'wrn')
+""",
+        "wrn",
+    )
 
     return True
 
@@ -73,7 +86,9 @@ def run_apply():
     # The general idea is, that the user runs the upgrade command before testing the new dependency
     # versions via unit test or whatever. This might result in file changes. Therefore, we have to
     # add all open changes and new files to the index when the user wants to persist the upgrade.
-    changed_and_new_files = " ".join(item.a_path for item in index.diff(None) + index.diff('HEAD'))
+    changed_and_new_files = " ".join(
+        item.a_path for item in index.diff(None) + index.diff("HEAD")
+    )
     # NOTE repo.index.add and .remove have problems with deleted files -> call git directly!
     run_process(f"git add {changed_and_new_files}", root)
 
@@ -88,18 +103,18 @@ def run_apply():
 
 
 def backup_package_files(components: t.List[LernaComponent]) -> None:
-    """ Creates backups of all component's package.json files. """
+    """Creates backups of all component's package.json files."""
     for component in components:
         # Backup package.json file
-        package_json = join_paths(component['location'], "package.json")
+        package_json = join_paths(component["location"], "package.json")
         copy(package_json, package_json + ".bak")
 
 
 def cleanup_on_success(components: t.List[LernaComponent]) -> None:
-    """ Removes package.json backups and linked .npmrc files. """
+    """Removes package.json backups and linked .npmrc files."""
     for component in components:
         # Remove backup of package.json file.
-        pkg_json_bak_file = join_paths(component['location'], "package.json.bak")
+        pkg_json_bak_file = join_paths(component["location"], "package.json.bak")
         remove(pkg_json_bak_file)
 
         # Remove linked .npmrc file.
@@ -107,13 +122,11 @@ def cleanup_on_success(components: t.List[LernaComponent]) -> None:
 
 
 def cleanup_on_error(components: t.List[LernaComponent]) -> None:
-    """ Restores package.json backups and removes linked .npmrc files. """
+    """Restores package.json backups and removes linked .npmrc files."""
     for component in components:
         # Restore backup of package.json file.
-        pkg_json_file = join_paths(component['location'], "package.json")
+        pkg_json_file = join_paths(component["location"], "package.json")
         move(pkg_json_file + ".bak", pkg_json_file)
 
         # Remove linked .npmrc file.
         unlink_npmrc_file(component)
-
-

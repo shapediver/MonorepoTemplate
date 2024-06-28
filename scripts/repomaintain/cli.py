@@ -1,18 +1,19 @@
 import sys
 import traceback
 import typing as t
-import click
 
+import click
 from cmd_publish import run as run_publish
 from cmd_sd_global import run as run_sd_global
 from cmd_update import run as run_update
-from cmd_upgrade import run_upgrade, run_apply as run_apply_upgrade
+from cmd_upgrade import run_apply as run_apply_upgrade
+from cmd_upgrade import run_upgrade
 from utils import PrintMessageError, app_on_error, app_on_success, echo
 
 
-def handler(status: t.Literal['ok', 'err']) -> None:
-    """ Process all cleanup functions that have been registered for the respective status. """
-    if status == 'ok':
+def handler(status: t.Literal["ok", "err"]) -> None:
+    """Process all cleanup functions that have been registered for the respective status."""
+    if status == "ok":
         for fn in app_on_success:
             fn()
     else:
@@ -22,19 +23,19 @@ def handler(status: t.Literal['ok', 'err']) -> None:
 
 
 def cmd_wrapper(cmd_fn: t.Callable[..., bool], *args) -> None:
-    """ Wrapper around a command function that allows to use `click` functions. """
+    """Wrapper around a command function that allows to use `click` functions."""
     try:
         res = cmd_fn(*args)
-        handler('ok' if res else 'err')
+        handler("ok" if res else "err")
     except KeyboardInterrupt:
-        echo("Process got interrupted.", 'wrn')
-        handler('err')
+        echo("Process got interrupted.", "wrn")
+        handler("err")
     except PrintMessageError as e:
-        echo(str(e), 'err')
-        handler('err')
+        echo(str(e), "err")
+        handler("err")
     except:
         traceback.print_exc()
-        handler('err')
+        handler("err")
 
 
 @click.group()
@@ -58,24 +59,27 @@ def update(no_git: bool) -> None:
 @click.option(
     "-t",
     "--target",
-    type=click.Choice(['major', 'minor', 'patch'], case_sensitive=False),
+    type=click.Choice(["major", "minor", "patch"], case_sensitive=False),
     prompt="Target version",
-    help="Determines the version to upgrade to.")
+    help="Determines the version to upgrade to.",
+)
 @click.option(
     "-f",
     "--filter",
     "dep_filter",
     type=str,
     help="Include only packages matching the given string, wildcard, /regex/ or comma-delimited "
-         "list.",
-    default="*")
+    "list.",
+    default="*",
+)
 @click.option(
     "-x",
     "--exclude",
     "dep_exclude",
     type=str,
     help="Exclude packages matching the given string, wildcard, /regex/ or comma-delimited list.",
-    default=None)
+    default=None,
+)
 def upgrade(target: str, dep_filter: str, dep_exclude: str) -> None:
     """
     Upgrades dependencies to the latest versions.
@@ -111,37 +115,34 @@ def apply_upgrade() -> None:
 
 
 @cli.command()
+@click.option("--dry-run", type=bool, help="Doesn't publish anything.", is_flag=True)
 @click.option(
-    "--dry-run",
-    type=bool,
-    help="Doesn't publish anything.",
-    is_flag=True)
-@click.option(
-    "--no-git",
-    type=bool,
-    help="Disable Git commit and tag creation.",
-    is_flag=True)
+    "--no-git", type=bool, help="Disable Git commit and tag creation.", is_flag=True
+)
 @click.option(
     "--always-ask",
     type=bool,
     help="Always asks the user and sets answers as default values for future invocations.",
-    is_flag=True)
+    is_flag=True,
+)
 @click.option(
     "--skip-existing",
     type=bool,
     help="Doesn't publish components when the target version already exists.",
-    is_flag=True)
+    is_flag=True,
+)
 @click.option(
     "--keep-version",
     type=bool,
     help="Doesn't increment component versions.",
-    is_flag=True)
+    is_flag=True,
+)
 def publish(
-        dry_run: bool,
-        no_git: bool,
-        always_ask: bool,
-        skip_existing: bool,
-        keep_version: bool,
+    dry_run: bool,
+    no_git: bool,
+    always_ask: bool,
+    skip_existing: bool,
+    keep_version: bool,
 ) -> None:
     """
     Publishes one or more components.
@@ -177,8 +178,8 @@ def publish(
 
 @cli.command()
 @click.argument(
-    "command",
-    type=click.Choice(['list-pinned', 'update-pinned'], case_sensitive=False))
+    "command", type=click.Choice(["list-pinned", "update-pinned"], case_sensitive=False)
+)
 def sd_global(command: str) -> None:
     """
     Interact with the ShapeDiver global configuration.
