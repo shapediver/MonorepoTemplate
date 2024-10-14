@@ -45,9 +45,12 @@ def run_upgrade(
     #  components, a leading comma, or duplicated dependencies.
     reject = pinned_deps_string + "," + (dep_exclude or "")
 
+    # Remove leading or trailing commas if they exist.
+    reject = reject.strip(",")
+
     # Build command to upgrade dependencies.
-    cmd = f"npx ncu --upgrade --packageManager npm --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
-    if reject != ",":
+    cmd = f"npx ncu --upgrade --packageManager pnpm --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
+    if reject:
         cmd += f" --reject {shlex.quote(reject)}"
 
     for component in components:
