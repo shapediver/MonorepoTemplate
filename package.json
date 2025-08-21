@@ -10,6 +10,7 @@
     "update": "bash ./scripts/run_python.sh cli sd-global update-pinned && bash ./scripts/run_python.sh cli update",
     "upgrade": "bash ./scripts/run_python.sh cli sd-global update-pinned && bash ./scripts/run_python.sh cli upgrade",
     "apply-upgrade": "bash ./scripts/run_python.sh cli apply-upgrade",
+    "check-peers": "bash ./scripts/run_python.sh cli check-peers",
     "publish": "bash ./scripts/run_python.sh cli publish",
     "pre-publish-global": "bash ./scripts/pre-publish-global.sh",
     "post-publish-global": "bash ./scripts/post-publish-global.sh",

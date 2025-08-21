@@ -8,6 +8,7 @@ from cmd_sd_global import run as run_sd_global
 from cmd_update import run as run_update
 from cmd_upgrade import run_apply as run_apply_upgrade
 from cmd_upgrade import run_upgrade
+from cmd_check_peers import run_check_peers
 from utils import PrintMessageError, app_on_error, app_on_success, echo
 
 
@@ -193,6 +194,18 @@ def sd_global(command: str) -> None:
     currently used by at least on Lerna managed component.
     """
     cmd_wrapper(run_sd_global, command.lower())
+
+
+@cli.command()
+def check_peers() -> None:
+    """
+    Check for peer dependency conflicts across all components.
+
+    This command analyzes all dependencies and devDependencies in each component,
+    fetches their peer dependency requirements using 'npm view', and validates
+    that no conflicts exist with currently installed versions.
+    """
+    cmd_wrapper(run_check_peers)
 
 
 if __name__ == "__main__":
