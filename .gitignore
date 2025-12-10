@@ -14,5 +14,6 @@ __pycache__/
 # Miscellaneous
 .atlassianrc
 
-# JetBrains products are ignored by default - remove where needed
+# JetBrains and VSCode products are ignored by default - remove where needed
 .idea/
+.vscode/

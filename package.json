@@ -7,7 +7,6 @@
     "check-npm-version": "bash ./scripts/check-npm-version.sh",
     "create-lib": "npm run check-npm-version && bash ./scripts/create-lib.sh",
     "create-package": "npm run check-npm-version && bash ./scripts/create-package.sh",
-    "update": "bash ./scripts/run_python.sh cli sd-global update-pinned && bash ./scripts/run_python.sh cli update",
     "upgrade": "bash ./scripts/run_python.sh cli sd-global update-pinned && bash ./scripts/run_python.sh cli upgrade",
     "apply-upgrade": "bash ./scripts/run_python.sh cli apply-upgrade",
     "check-peers": "bash ./scripts/run_python.sh cli check-peers",
@@ -21,18 +20,18 @@
     "downstream": "bash ./scripts/downstream.sh"
   },
   "devDependencies": {
-    "@types/jest": "~30.0.0",
-    "@types/node": "~20.19.26",
-    "jest": "~30.2.0",
-    "json": "~11.0.0",
-    "lerna": "~8.2.4",
-    "npm-check-updates": "~18.3.1",
-    "ts-jest": "~29.4.6",
-    "ts-loader": "~9.5.4",
-    "typescript": "~5.9.3",
-    "webpack": "~5.103.0",
-    "webpack-cli": "~6.0.1",
-    "webpack-dev-server": "~5.2.2",
-    "webpack-merge": "~6.0.1"
+    "@types/jest": "30.0.0",
+    "@types/node": "20.19.26",
+    "jest": "30.2.0",
+    "json": "11.0.0",
+    "lerna": "8.2.4",
+    "npm-check-updates": "18.3.1",
+    "ts-jest": "29.4.6",
+    "ts-loader": "9.5.4",
+    "typescript": "5.9.3",
+    "webpack": "5.103.0",
+    "webpack-cli": "6.0.1",
+    "webpack-dev-server": "5.2.2",
+    "webpack-merge": "6.0.1"
   }
 }
