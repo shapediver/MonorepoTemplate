@@ -5,6 +5,8 @@ dist-dev
 dist-prod
 lerna-debug.log
 .npmrc
+.nx
+/**/*.tsbuildinfo
 
 # Python
 .venv/
