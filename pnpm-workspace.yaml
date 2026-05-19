@@ -1,3 +1,5 @@
 packages:
-  - 'packages/*'
-  - 'libs/*'
+  - "packages/*"
+  - "libs/*"
+allowBuilds:
+  nx: true
