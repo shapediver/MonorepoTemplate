@@ -6,7 +6,7 @@ set -o nounset
 # We try to use the same Node.js (LTS) and NPM versions for all TypeScript ShapeDiver projects.
 target_node_version="v24"
 target_npm_version="11"
-target_pnpm_version="10"
+target_pnpm_version="11"
 
 node_version=$(node -v | cut -d. -f1)
 npm_version=$(npm -v | cut -d. -f1)
