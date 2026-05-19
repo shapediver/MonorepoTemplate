@@ -162,9 +162,17 @@ def prepare_components(components: t.List[LernaComponent], config: CliConfig) ->
         update of the package.json object is performed. Afterwards, should the versions match, the
         specified dependency is removed from the package.json object.
         """
+        dep_version_spec = pkg_json_dep_ref[name]
+
+        # pnpm workspace protocol (e.g. "workspace:*") is not a valid npm semver range.
+        # It already links to the local version, so treat it as a match and remove it.
+        if dep_version_spec.startswith("workspace:"):
+            del pkg_json_dep_ref[name]
+            return
+
         # Stop if versions do not match
         if semver.Version(internal_dependency["version"]) not in semver.NpmSpec(
-            pkg_json_dep_ref[name]
+            dep_version_spec
         ):
             echo(
                 f"""
