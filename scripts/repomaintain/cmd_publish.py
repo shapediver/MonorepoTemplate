@@ -9,6 +9,7 @@ import git
 import semantic_version as semver
 from utils import (
     CliConfig,
+    DEPENDENCY_TYPES,
     LernaComponent,
     PrintMessageError,
     app_on_error,
@@ -47,6 +48,8 @@ Registry = t.TypedDict(
     },
 )
 
+WorkspaceDependencySpecs = t.Dict[str, t.Dict[str, t.Dict[str, str]]]
+
 
 def run(
     dry_run: bool,
@@ -77,7 +80,15 @@ def run(
     # Ask user to which registries the selected components should be published to and make sure
     # that the user is already logged in for all selected registries.
     registries = ask_user_for_registry(root)
-    # Register cleanup handler for error case. However, we cannot really do much here.
+    workspace_dependency_specs: WorkspaceDependencySpecs = {}
+    # Register cleanup handlers for error case. However, we cannot really do much here.
+    app_on_error.append(
+        functools.partial(
+            restore_workspace_dependency_specs,
+            workspace_dependency_specs,
+            config,
+        )
+    )
     app_on_error.append(functools.partial(cleanup, all_components))
 
     # Build argument string for global pre-/post-publish scripts.
@@ -93,7 +104,9 @@ def run(
     run_process(f"npm run pre-publish-global {global_args_str}", root)
 
     # Update component versions.
-    update_version(all_components, publishable_components, config)
+    update_version(
+        all_components, publishable_components, config, workspace_dependency_specs
+    )
 
     for c in publishable_components:
         echo(f"\nPublishing component {c['component']['name']}:")
@@ -169,6 +182,9 @@ def run(
 
         # Run post-publish
         run_process(f"npm run post-publish {args_str}", c["component"]["location"])
+
+    # Restore workspace dependency specs that were temporarily resolved for npm publish.
+    restore_workspace_dependency_specs(workspace_dependency_specs, config)
 
     # Update the pnpm-lock.yaml file to apply the changed component versions.
     echo("\nUpdating lock-file:")
@@ -564,6 +580,7 @@ def update_version(
     all_components: t.List[LernaComponent],
     publishable_components: t.List[PublishableComponent],
     config: CliConfig,
+    workspace_dependency_specs: WorkspaceDependencySpecs,
 ) -> None:
     """
     Updates versions in the package.json file of the given components.
@@ -576,6 +593,7 @@ def update_version(
     publishable_component_map: t.Dict[str, str] = {
         c["component"]["name"]: c["new_version"] for c in publishable_components
     }
+    component_map: t.Dict[str, LernaComponent] = {c["name"]: c for c in all_components}
 
     # Regex to extract the prefix of a semver (e.g. '~', '<=')
     regex = re.compile(r"^[^ \d]*")
@@ -592,7 +610,34 @@ def update_version(
         c["name"]: {} for c in all_components
     }
 
-    def update_internal_dependency(pkg_json_dep_ref: t.Dict[str, t.Any]) -> None:
+    def resolve_workspace_dependency_version(
+        dep_name: str, current_version: str, target_version: str
+    ) -> str:
+        """Resolves pnpm workspace protocol specs to publishable npm version specs."""
+        workspace_spec = current_version.removeprefix("workspace:")
+
+        if workspace_spec in ("", "*"):
+            return target_version
+        if workspace_spec in ("^", "~"):
+            return workspace_spec + target_version
+
+        try:
+            semver.NpmSpec(workspace_spec)
+        except ValueError:
+            raise PrintMessageError(
+                f"""
+ERROR:
+  Unsupported workspace dependency spec '{current_version}' for dependency {dep_name}.
+  Use a semver workspace spec like 'workspace:*', 'workspace:^', or 'workspace:~'.
+"""
+            )
+
+        semver_specifier: str = re.findall(regex, workspace_spec)[0]
+        return semver_specifier + target_version
+
+    def update_internal_dependency(
+        pkg_json_dep_ref: t.Dict[str, t.Any], dep_type: str, target_version: str
+    ) -> None:
         """
         Helper function to update the version of a linked internal dependency.
 
@@ -602,14 +647,24 @@ def update_version(
         information is added to `forced_updates`. Afterwards, the new version is set in the
         package.json object.
         """
-        # Extract semver-prefix
-        semver_specifier: str = re.findall(regex, pkg_json_dep_ref[name])[0]
-
         current_version = pkg_json_dep_ref[name]
-        new_version = semver_specifier + version
+
+        if current_version.startswith("workspace:"):
+            new_version = resolve_workspace_dependency_version(
+                name, current_version, target_version
+            )
+            workspace_dependency_specs.setdefault(component["location"], {}).setdefault(
+                dep_type, {}
+            )[name] = current_version
+            pkg_json_dep_ref[name] = new_version
+            return
+
+        # Extract semver-prefix
+        semver_specifier: str = re.findall(regex, current_version)[0]
+        new_version = semver_specifier + target_version
 
         # Extend forced_updates list when versions do not match
-        if semver.Version(version) not in semver.NpmSpec(current_version):
+        if semver.Version(target_version) not in semver.NpmSpec(current_version):
             forced_updates[component["name"]].update(
                 {name: f"{current_version} -> {new_version}"}
             )
@@ -628,18 +683,27 @@ def update_version(
         if component["name"] in publishable_component_map:
             pkg_json_content["version"] = publishable_component_map[component["name"]]
 
-        # Remove all internal dependencies that have a matching version.
-        for name, version in publishable_component_map.items():
-            if (
-                "dependencies" in pkg_json_content
-                and name in pkg_json_content["dependencies"]
-            ):
-                update_internal_dependency(pkg_json_content["dependencies"])
-            elif (
-                "devDependencies" in pkg_json_content
-                and name in pkg_json_content["devDependencies"]
-            ):
-                update_internal_dependency(pkg_json_content["devDependencies"])
+        # Update internal dependencies that are part of the release, or workspace protocol
+        # dependencies in packages that are about to be published.
+        for name, internal_dependency in component_map.items():
+            target_version = publishable_component_map.get(
+                name, internal_dependency["version"]
+            )
+            should_update = name in publishable_component_map
+            is_published_component = component["name"] in publishable_component_map
+
+            for dep_type in DEPENDENCY_TYPES:
+                if (
+                    dep_type not in pkg_json_content
+                    or name not in pkg_json_content[dep_type]
+                ):
+                    continue
+
+                dep_ref = pkg_json_content[dep_type]
+                if should_update or (
+                    is_published_component and dep_ref[name].startswith("workspace:")
+                ):
+                    update_internal_dependency(dep_ref, dep_type, target_version)
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
@@ -671,6 +735,29 @@ def update_version(
         )
         if not answers["proceed"]:
             raise PrintMessageError("Process got stopped by the user.")
+
+
+def restore_workspace_dependency_specs(
+    workspace_dependency_specs: WorkspaceDependencySpecs,
+    config: CliConfig,
+) -> None:
+    """Restores workspace protocol specs that were temporarily resolved for publishing."""
+    if len(workspace_dependency_specs) == 0:
+        return
+
+    echo("\nRestoring workspace dependency specs.")
+
+    for location, component_specs in workspace_dependency_specs.items():
+        pkg_json_file = join_paths(location, "package.json")
+
+        with open(pkg_json_file, "r") as reader:
+            pkg_json_content: t.Dict[str, t.Any] = json.load(reader)
+
+        for dep_type, dependency_specs in component_specs.items():
+            pkg_json_content.setdefault(dep_type, {}).update(dependency_specs)
+
+        with open(pkg_json_file, "w") as writer:
+            writer.write(json.dumps(pkg_json_content, indent=config["indent"]) + "\n")
 
 
 def package_version_exists(

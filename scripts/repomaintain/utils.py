@@ -18,6 +18,12 @@ ATLASSIAN_URL = "https://shapediver.atlassian.net"
 ATLASSIAN_SPACE_KEY = "SS"  # ShapeDiver Scrum
 ATLASSIAN_PAGE_TITLE = "Pinned Dependency Versions"
 ATLASSIAN_DOC_VERSION = "1"  # Specified in the Confluence page
+DEPENDENCY_TYPES = (
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+)
 
 # Typed structure of the property `repomaintain` in `root/scope.json`.
 CliConfig = t.TypedDict(

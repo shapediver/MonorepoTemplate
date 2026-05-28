@@ -7,6 +7,7 @@ import git
 import semantic_version as semver
 from utils import (
     CliConfig,
+    DEPENDENCY_TYPES,
     LernaComponent,
     PrintMessageError,
     app_on_error,
@@ -139,9 +140,9 @@ def prepare_components(components: t.List[LernaComponent], config: CliConfig) ->
     Remove linked internal dependencies from package.json files.
 
     Modifies the package.json file of all Lerna components. When a component depends on another
-    internally managed component (dependency or dev-dependency), the dependency reference is
-    removed. pNPM replaces the version of internal dependencies by a `workspace` identifier, which
-    we do not want to use. Therefore we do not include them in the NPM update process.
+    internally managed component, the dependency reference is removed. pNPM replaces the version of
+    internal dependencies by a `workspace` identifier, which we do not want to use. Therefore we do
+    not include them in the NPM update process.
 
     An exception to this is when an old version of an internal dependency is referenced.
     """
@@ -196,16 +197,14 @@ Component {internal_dependency['name']}:
 
         # Remove all internal dependencies that have a matching version.
         for name, internal_dependency in component_map.items():
-            if (
-                "dependencies" in pkg_json_content
-                and name in pkg_json_content["dependencies"]
-            ):
-                update_internal_dependency(pkg_json_content["dependencies"])
-            elif (
-                "devDependencies" in pkg_json_content
-                and name in pkg_json_content["devDependencies"]
-            ):
-                update_internal_dependency(pkg_json_content["devDependencies"])
+            for dep_type in DEPENDENCY_TYPES:
+                if (
+                    dep_type not in pkg_json_content
+                    or name not in pkg_json_content[dep_type]
+                ):
+                    continue
+
+                update_internal_dependency(pkg_json_content[dep_type])
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:
@@ -251,12 +250,11 @@ def cleanup_on_success(
             pkg_json_original: t.Dict[str, t.Any] = json.load(reader)
 
         # Apply the updated versions to the original package.json file.
-        if "dependencies" in pkg_json_updated:
-            for dependency, version in pkg_json_updated["dependencies"].items():
-                pkg_json_original["dependencies"][dependency] = version
-        if "devDependencies" in pkg_json_updated:
-            for dependency, version in pkg_json_updated["devDependencies"].items():
-                pkg_json_original["devDependencies"][dependency] = version
+        for dep_type in DEPENDENCY_TYPES:
+            if dep_type not in pkg_json_updated:
+                continue
+
+            pkg_json_original.setdefault(dep_type, {}).update(pkg_json_updated[dep_type])
 
         # Write changes to package.json file.
         with open(pkg_json_file, "w") as writer:

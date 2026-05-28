@@ -49,7 +49,10 @@ def run_upgrade(
     reject = reject.strip(",")
 
     # Build command to upgrade dependencies.
-    cmd = f"npx ncu --upgrade --packageManager pnpm --target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
+    cmd = (
+        "npx ncu --upgrade --packageManager pnpm --dep prod,dev,optional,peer "
+        f"--target {shlex.quote(target)} --filter {shlex.quote(dep_filter)}"
+    )
     if reject:
         cmd += f" --reject {shlex.quote(reject)}"
 
