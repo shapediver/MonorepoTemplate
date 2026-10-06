@@ -9,9 +9,10 @@ from subprocess import DEVNULL, STDOUT, run
 
 import click
 import git
+import questionary
 from atlassian import Confluence
 from bs4 import BeautifulSoup
-from PyInquirer import prompt
+from questionary import Choice
 from requests import HTTPError
 
 ATLASSIAN_URL = "https://shapediver.atlassian.net"
@@ -56,6 +57,29 @@ LernaComponent = t.TypedDict(
         "private": bool,
         "location": str,
     },
+)
+
+ChoiceSpecDict = t.TypedDict(
+    "ChoiceSpecDict",
+    {
+        "name": str,
+        "value": str,
+    },
+    total=False,
+)
+
+ChoiceSpec = t.Union[str, ChoiceSpecDict]
+
+QuestionSpec = t.TypedDict(
+    "QuestionSpec",
+    {
+        "type": t.Required[t.Literal["list", "input", "confirm", "checkbox"]],
+        "name": t.Required[str],
+        "message": t.Required[str],
+        "choices": t.List[ChoiceSpec],
+        "default": t.Any,
+    },
+    total=False,
 )
 
 # Holds functions that should be executed when the application completed successfully.
@@ -170,13 +194,64 @@ def git_repo() -> git.Repo:
     return git.Repo(file_path, search_parent_directories=True)
 
 
-def ask_user(questions: t.List[t.Dict[str, t.Any]]) -> t.Dict[str, t.Any]:
-    """Wrapper around `PyInquirer.prompt` that catches user interrupts."""
-    answers = prompt(questions)
-    if len(answers) == 0:
+def ask_user(questions: t.List[QuestionSpec]) -> t.Dict[str, t.Any]:
+    """Prompts the user via questionary behind the legacy question-dict spec.
+
+    Questions are asked sequentially; answers are keyed by each question's ``name``.
+
+    :raise KeyboardInterrupt: When the user cancels any prompt (Ctrl+C), or when
+        ``questions`` is empty.
+    :raise PrintMessageError: When a question dict has an unknown ``type``.
+    """
+    if len(questions) == 0:
         raise KeyboardInterrupt
-    else:
-        return answers
+
+    answers: t.Dict[str, t.Any] = {}
+    for q in questions:
+        question = _translate_question(q)
+        answers[q["name"]] = question.unsafe_ask()
+    return answers
+
+
+def _translate_choices(choices: t.List[ChoiceSpec]) -> t.List[Choice]:
+    result: t.List[Choice] = []
+    for choice in choices:
+        if isinstance(choice, str):
+            result.append(Choice(title=choice, value=choice))
+        else:
+            name = choice["name"]
+            value = choice.get("value", name)
+            result.append(Choice(title=name, value=value))
+    return result
+
+
+def _translate_question(question: QuestionSpec) -> questionary.Question:
+    qtype = question["type"]
+    message = question["message"]
+
+    if qtype == "list":
+        choices = _translate_choices(question.get("choices", []))
+        kwargs: t.Dict[str, t.Any] = {"choices": choices}
+        if "default" in question:
+            kwargs["default"] = question["default"]
+        return questionary.select(message, **kwargs)
+    if qtype == "checkbox":
+        return questionary.checkbox(
+            message, choices=_translate_choices(question.get("choices", []))
+        )
+    if qtype == "input":
+        kwargs = {}
+        if "default" in question:
+            kwargs["default"] = str(question["default"])
+        return questionary.text(message, **kwargs)
+    if qtype == "confirm":
+        return questionary.confirm(
+            message, default=question.get("default", False)
+        )
+
+    raise PrintMessageError(
+        f"\nERROR:\n  Unknown prompt question type: {qtype!r}."
+    )
 
 
 def run_process(
@@ -387,6 +462,7 @@ def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
         username=config["username"],
         password=config["api_token"],
         cloud=True,
+        api_version=2,
     )
 
     # Check if user is authenticated and try to fetch the Confluence page.
@@ -413,13 +489,13 @@ def get_confluence_page(root: str) -> t.Tuple[Confluence, str, BeautifulSoup]:
         )
 
     # Load the content data of the page (is in HTML format)
-    page_json = confluence.get_page_by_id(page_id, expand="body.storage")
+    page_json = confluence.get_page_by_id(page_id, body_format="storage")
     soup = BeautifulSoup(page_json["body"]["storage"]["value"], "html.parser")
 
     # Check the ShapeDiver version of the Confluence page. This prevents old versions of this CLI
     # tool to mess with the page.
     # sd_version = soup.find(attrs={"data-panel-type": "info"})
-    sd_version_element = soup.find(text=re.compile(r"^Processor Version:\s*\d+\s*$"))
+    sd_version_element = soup.find(string=re.compile(r"^Processor Version:\s*\d+\s*$"))
     sd_version = sd_version_element.split(": ")[1].strip()
     if sd_version != ATLASSIAN_DOC_VERSION:
         raise PrintMessageError(

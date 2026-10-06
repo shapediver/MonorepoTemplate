@@ -20,10 +20,17 @@ function exec_python() {
 # Stops the script when the version of the Python command is invalid.
 function check_python_version() {
   # We try to use the same Python version (LTS) for all TypeScript ShapeDiver projects.
-  local target_python_version="3.9"
+  local target_python_version="3.13"
+  local detected_version
 
-  if ! exec_python -V 2>&1 | grep -q "^Python $(echo "${target_python_version}" | sed -r 's/\.+/\\./g')\."; then
-    echo "Invalid Python version: Detected version $(python -V) but requires ${target_python_version}.x." >&2
+  if ! detected_version="$(exec_python -V 2>&1)"; then
+    echo "Error: No executable for Python 3 found." >&2
+    exit 1
+  fi
+
+  if [[ ! "${detected_version}" =~ ^Python\ ${target_python_version//./\\.}\. ]]; then
+    echo "Invalid Python version: Detected ${detected_version} but requires ${target_python_version}.x." >&2
+    echo "Run 'mise install' to install the Python version pinned in mise.toml." >&2
     exit 1
   fi
 }
