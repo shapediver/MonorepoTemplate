@@ -13,7 +13,8 @@ check_python_version
 rm "${__dir}/../.python-version" 2>/dev/null || :
 
 # Create a new Python virtual environment for this application
-python -m venv "${__dir}/../.venv"
+rm -rf "${__dir}/../.venv"
+exec_python -m venv "${__dir}/../.venv"
 
 # Activate virtual environment
 activate_python_venv
