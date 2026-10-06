@@ -44,11 +44,15 @@ Set the `script-shell` of npm to bash via `npm config set script-shell "PATH\TO\
 
 ### Python
 
-You need to install a specific version of Python (3.9.x, reaches end of support in 2025-10).
+You need a specific version of Python (3.13.x). The version is pinned in `mise.toml`.
+
+We use [mise](https://mise.jdx.dev/) to install and manage the pinned tools
+(similar to _nvm_ that we use for Node.js).
 
 #### Windows
 
-Download the latest 3.9-version of [Python](https://www.python.org/downloads/) and don't forget to select the box "Add Python 3.9 to PATH".\
+Download the latest 3.13-version of [Python](https://www.python.org/downloads/) and
+don't forget to select the box "Add Python 3.13 to PATH".\
 _Note: Not all versions have been ported to Windows, so pick the latest version that has a **Windows installer** file._
 
 Once installed disable the Windows alias feature for Python:
@@ -57,26 +61,12 @@ Once installed disable the Windows alias feature for Python:
 
 #### Unix &amp; Mac
 
-We use [pyenv](https://github.com/pyenv/pyenv) to install and manage multiple Python versions (similar to _nvm_ that we use for Node.js).
-Once installed run the following commands:
+Install mise, then run the following command in the repository root:
+
 ```bash
-# Install the latest patch version of Python
-pyenv install -v 3.9
-
-# Set the global default Python executable for the current user (protects your "System Python")
-pyenv global 3.9
+# Install the Python version pinned in mise.toml (3.13) and put it on PATH
+mise install
 ```
-
-_Note_:\
-Watch out for compilation errors in submodules!
-When a compilation error happens, the last log lines contain a **ModuleNotFoundError** message (warnings can be ignored though).
-This usually means that your system is missing some dependencies.
-In this case do the following:
-
-1. Install the missing dependencies. Google is your friend here :)
-2. Uninstall the Python version you just installed: `pyenv uninstall <python_version>`
-3. Install Python again: `pyenv install -v 3.9`
-4. Check for module errors; repeat if necessary.
 
 ### Installing
 
