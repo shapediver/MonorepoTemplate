@@ -194,6 +194,22 @@ def git_repo() -> git.Repo:
     return git.Repo(file_path, search_parent_directories=True)
 
 
+def commit_index(repo: git.Repo, message: str) -> None:
+    """Commit the current index with ``git commit``.
+
+    ``IndexFile.commit`` writes the commit object itself and ignores
+    ``commit.gpgsign``. ``git commit`` applies that setting, including an SSH
+    signing key. Hooks stay disabled, matching the previous ``skip_hooks=True``
+    calls.
+
+    :arg repo: Repository whose index should be committed.
+    :arg message: Commit message.
+    :raise git.GitCommandError: When ``git commit`` fails, including when a
+        required signature cannot be created.
+    """
+    repo.git.commit("-m", message, "--no-verify")
+
+
 def ask_user(questions: t.List[QuestionSpec]) -> t.Dict[str, t.Any]:
     """Prompts the user via questionary behind the legacy question-dict spec.
 

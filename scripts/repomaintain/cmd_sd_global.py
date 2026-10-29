@@ -6,6 +6,7 @@ import git
 from utils import (
     PrintMessageError,
     cmd_helper,
+    commit_index,
     echo,
     fetch_globally_pinned_dependencies,
     git_repo,
@@ -128,7 +129,7 @@ def cmd_update_pinned() -> bool:
 
         # Create a new commit.
         if len(repo.index.diff("HEAD")) > 0:
-            index.commit("Update globally pinned dependencies", skip_hooks=True)
+            commit_index(repo, "Update globally pinned dependencies")
             echo("\nCreated a new commit.")
 
     return True

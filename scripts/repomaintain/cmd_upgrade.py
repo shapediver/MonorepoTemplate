@@ -6,6 +6,7 @@ from utils import (
     LernaComponent,
     app_on_error,
     cmd_helper,
+    commit_index,
     copy,
     echo,
     fetch_globally_pinned_dependencies,
@@ -76,7 +77,7 @@ Please complete the following steps next:
   1. Test the application(s) and make sure that the new versions do not cause problems. When you
     encounter issues and cannot fix them, downgrade the version of the problematic dependencies.
     (Do not forget to run `pnpm install` after downgrading versions to apply the changes).
-  
+
   2. Persist your changes by running `npm run apply-upgrade`.
 """,
         "wrn",
@@ -100,7 +101,7 @@ def run_apply():
 
     # Create a new commit.
     if len(repo.index.diff("HEAD")) > 0:
-        index.commit("Upgrade dependencies", skip_hooks=True)
+        commit_index(repo, "Upgrade dependencies")
         echo("\nCreated a new commit.")
     else:
         echo("\nNo upgrades found.")

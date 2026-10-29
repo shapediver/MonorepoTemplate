@@ -13,6 +13,7 @@ from utils import (
     app_on_error,
     ask_user,
     cmd_helper,
+    commit_index,
     copy,
     echo,
     join_paths,
@@ -228,7 +229,7 @@ def commit_changes(
         index.add(join_paths(component["location"], "package.json"))
 
     if len(repo.index.diff("HEAD")) > 0:
-        index.commit("Update dependencies", skip_hooks=True)
+        commit_index(repo, "Update dependencies")
         echo("\nCreated a new commit.")
     else:
         echo("\nNo updates found.")
